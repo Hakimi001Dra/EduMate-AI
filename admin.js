@@ -15,7 +15,7 @@
         // ─── INIT ────────────────────────────────────────────
         async function init() {
             try {
-                initSupabase();
+                await initSupabaseWithRetry();
                 initFileUploads();
 
                 const { data } = await db.auth.getSession();
@@ -28,6 +28,7 @@
                 }
             } catch (e) {
                 console.error('Admin init error:', e);
+                showPersistentError('⚠️ ' + (e.message || 'Could not connect to the server. Please refresh the page.'));
                 showAdminLoginView();
             }
         }
@@ -93,6 +94,7 @@
             const password = document.getElementById('adminPassword').value;
             const err = document.getElementById('adminLoginError');
             try {
+                if (!db) await initSupabaseWithRetry(8, 250);
                 const { data, error } = await db.auth.signInWithPassword({ email, password });
                 if (error) throw error;
                 adminSession = data.session;
@@ -249,7 +251,6 @@
                 document.getElementById('adminJournalForm').querySelector('form').reset();
                 hideAdminForm('journal');
                 loadAdminJournals();
-                refreshAllData();
             } catch (e) { showToast(e.message || 'Error creating journal', 'error'); }
         }
 
@@ -259,7 +260,6 @@
                 await db.from('journals').delete().eq('id', id);
                 showToast('Journal deleted', 'success');
                 loadAdminJournals();
-                refreshAllData();
             } catch (e) { showToast('Error deleting', 'error'); }
         }
 
@@ -281,7 +281,6 @@
                 document.getElementById('adminFacultyForm').querySelector('form').reset();
                 hideAdminForm('faculty');
                 loadAdminFaculty();
-                refreshAllData();
             } catch (e) { showToast(e.message || 'Error creating faculty', 'error'); }
         }
 
@@ -291,7 +290,6 @@
                 await db.from('faculty').delete().eq('id', id);
                 showToast('Faculty deleted', 'success');
                 loadAdminFaculty();
-                refreshAllData();
             } catch (e) { showToast('Error deleting', 'error'); }
         }
 
@@ -313,7 +311,6 @@
                 document.getElementById('adminNewsForm').querySelector('form').reset();
                 hideAdminForm('news');
                 loadAdminNews();
-                refreshAllData();
             } catch (e) { showToast(e.message || 'Error creating news', 'error'); }
         }
 
@@ -323,7 +320,6 @@
                 await db.from('news_events').delete().eq('id', id);
                 showToast('News deleted', 'success');
                 loadAdminNews();
-                refreshAllData();
             } catch (e) { showToast('Error deleting', 'error'); }
         }
 
@@ -341,7 +337,6 @@
                 document.getElementById('adminProgrammeForm').querySelector('form').reset();
                 hideAdminForm('programme');
                 loadAdminProgrammes();
-                refreshAllData();
             } catch (e) { showToast(e.message || 'Error creating programme', 'error'); }
         }
 
@@ -351,7 +346,6 @@
                 await db.from('programmes').delete().eq('id', id);
                 showToast('Programme deleted', 'success');
                 loadAdminProgrammes();
-                refreshAllData();
             } catch (e) { showToast('Error deleting', 'error'); }
         }
 
