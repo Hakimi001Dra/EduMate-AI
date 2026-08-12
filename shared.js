@@ -5,9 +5,8 @@
 // ═══════════════════════════════════════════════════════════
 
 // ═══ Supabase project credentials ═══
-const SUPABASE_URL = "https://xonqebmlxlbvvhvmhhxv.supabase.co";
-const SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhvbnFlYm1seGxidnZodm1oaHh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMzczMTEsImV4cCI6MjEwMTYxMzMxMX0.8txFv3_7FH0XGbfXSy8A17t9xsPoGD-kCkZBARhyXQc";
+const SUPABASE_URL = 'https://xonqebmlxlbvvhvmhhxv.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhvbnFlYm1seGxidnZodm1oaHh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMzczMTEsImV4cCI6MjEwMTYxMzMxMX0.8txFv3_7FH0XGbfXSy8A17t9xsPoGD-kCkZBARhyXQc';
 
 let db = null;
 
