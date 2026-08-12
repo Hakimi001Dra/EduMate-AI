@@ -97,7 +97,9 @@ function showToast(msg, type = 'success') {
                     statusEl.textContent = `Uploading ${file.name}...`;
 
                     try {
-                        const { path, url } = await this.uploadFile(file);
+                        if (!db) throw new Error('Not connected to the server yet. Please refresh the page and try again.');
+
+                        const { path, url } = await withTimeout(this.uploadFile(file), 30000);
 
                         statusEl.innerHTML = url
                             ? `✅ Uploaded: <a href="${url}" target="_blank">${file.name}</a>`
@@ -115,8 +117,11 @@ function showToast(msg, type = 'success') {
                         }, 5000);
 
                     } catch (error) {
-                        statusEl.innerHTML = `❌ Error: ${error.message}`;
+                        statusEl.innerHTML = `❌ ${error.message || 'Upload failed'} — <button type="button" class="btn-outline-dark" style="padding:2px 10px;font-size:12px;" onclick="document.getElementById('${this.containerId}_input').click()">Try again</button>`;
                         progressContainer.style.display = 'none';
+                        progressFill.style.width = '0%';
+                        progressText.textContent = '0%';
+                        fileInput.value = '';
                     }
                 });
             }
@@ -133,7 +138,13 @@ function showToast(msg, type = 'success') {
                         upsert: false
                     });
 
-                if (error) throw new Error(error.message);
+                if (error) {
+                    // Give a clearer hint for the most common misconfiguration
+                    if (/bucket.*not.*found/i.test(error.message)) {
+                        throw new Error(`Storage bucket "${this.bucket}" doesn't exist yet in Supabase — run the setup SQL first.`);
+                    }
+                    throw new Error(error.message);
+                }
 
                 if (this.isPrivate) {
                     // Private bucket: don't request a public URL (bucket has no public access).
@@ -178,13 +189,13 @@ function showToast(msg, type = 'success') {
             if (pdfContainer) {
                 const pdfUpload = new FileUpload({
                     bucket: 'journal-pdfs',
-                    accept: '.pdf',
-                    label: '📄 Upload PDF',
+                    accept: '.pdf,.doc,.docx',
+                    label: '📄 Upload Article File (PDF or Word)',
                     maxSize: 100 * 1024 * 1024,
                     containerId: 'pdfUpload',
                     onUpload: (path, url) => {
                         document.getElementById('ajPdfUrl').value = url;
-                        showToast('PDF uploaded successfully!', 'success');
+                        showToast('File uploaded successfully!', 'success');
                     }
                 });
                 pdfContainer.innerHTML = pdfUpload.render();
@@ -225,6 +236,24 @@ function showToast(msg, type = 'success') {
                 });
                 imageContainer.innerHTML = imageUpload.render();
                 imageUpload.init();
+            }
+
+            // Site Logo Upload (admin settings - public bucket, so it can be shown on the live site)
+            const logoContainer = document.getElementById('logoUploadContainer');
+            if (logoContainer) {
+                const logoUpload = new FileUpload({
+                    bucket: 'site-branding',
+                    accept: 'image/*',
+                    label: '🖼️ Upload Logo',
+                    maxSize: 5 * 1024 * 1024,
+                    containerId: 'logoUpload',
+                    onUpload: (path, url) => {
+                        document.getElementById('setSiteLogoUrl').value = url;
+                        showToast('Logo uploaded — click "Save Settings" to publish it.', 'success');
+                    }
+                });
+                logoContainer.innerHTML = logoUpload.render();
+                logoUpload.init();
             }
 
             // Manuscript Upload — Quick Submission Form (private, blind review)
