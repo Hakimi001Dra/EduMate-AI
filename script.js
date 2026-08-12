@@ -125,8 +125,8 @@
 
         async function refreshAllData() {
             await Promise.all([fetchJournals(), fetchFaculty(), fetchNews(), fetchProgrammes()]);
-            renderHomePage();
-            renderAllPages();
+            try { renderHomePage(); } catch (e) { console.error('renderHomePage failed:', e); }
+            try { renderAllPages(); } catch (e) { console.error('renderAllPages failed:', e); }
         }
 
         // Retries a single section (called from the "Retry" button rendered
@@ -155,8 +155,25 @@
                 </div>`;
                 return;
             }
-            el.innerHTML = items.map(renderFn).join('') ||
-                `<p style="text-align:center;color:var(--text-muted);padding:2rem;">${emptyMsg}</p>`;
+            try {
+                const html = items.map(item => {
+                    try {
+                        return renderFn(item);
+                    } catch (itemErr) {
+                        // One malformed record (e.g. a missing required field) shouldn't
+                        // take the rest of the list down with it — skip just this one.
+                        console.error(`Skipped a broken record in ${containerId}:`, itemErr, item);
+                        return '';
+                    }
+                }).join('');
+                el.innerHTML = html || `<p style="text-align:center;color:var(--text-muted);padding:2rem;">${emptyMsg}</p>`;
+            } catch (sectionErr) {
+                console.error(`Error rendering ${containerId}:`, sectionErr);
+                el.innerHTML = `<div style="text-align:center;padding:2rem;color:#dc2626;">
+                    ⚠️ Something went wrong displaying this content.
+                    <button class="btn-outline-dark" style="margin-left:8px;" onclick="retrySection('${retryType}')">Retry</button>
+                </div>`;
+            }
         }
 
         // ─── SITE SETTINGS (deadline / submission email) ───
@@ -267,13 +284,14 @@
         }
 
         function renderFacultyCard(m) {
-            const i = m.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+            const safeName = m.name || 'Unnamed';
+            const i = safeName.split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || '?';
             return `<div class="faculty-card">
-                <div class="faculty-photo">${m.photo_url ? `<img src="${m.photo_url}" alt="${m.name}">` : i}</div>
+                <div class="faculty-photo">${m.photo_url ? `<img src="${m.photo_url}" alt="${safeName}">` : i}</div>
                 <div class="faculty-info">
-                    <h4>${m.name}</h4>
-                    <div class="title">${m.title}</div>
-                    <div class="specialization">${m.specialization}</div>
+                    <h4>${safeName}</h4>
+                    <div class="title">${m.title || ''}</div>
+                    <div class="specialization">${m.specialization || ''}</div>
                 </div>
             </div>`;
         }
@@ -354,20 +372,31 @@
             renderSectionOrError('homeNewsList', allNews.slice(0, 4), renderNewsItem, fetchErrors.news, 'No news found.', 'news');
             renderSectionOrError('homeFacultyGrid', allFaculty.slice(0, 8), renderFacultyCard, fetchErrors.faculty, 'No faculty found.', 'faculty');
 
-            const archiveContainer = document.getElementById('archiveList');
-            if (fetchErrors.journals) {
-                archiveContainer.innerHTML = '<li>Couldn\'t load — <a onclick="retrySection(\'journals\')">retry</a></li>';
-            } else {
-                const volumes = [...new Set(allJournals.map(j => `Volume ${j.volume} (${j.year})`))];
-                archiveContainer.innerHTML = volumes.map(v => `<li>${v}</li>`).join('') || '<li>No volumes</li>';
+            try {
+                const archiveContainer = document.getElementById('archiveList');
+                if (fetchErrors.journals) {
+                    archiveContainer.innerHTML = '<li>Couldn\'t load — <a onclick="retrySection(\'journals\')">retry</a></li>';
+                } else {
+                    const volumes = [...new Set(allJournals.map(j => `Volume ${j.volume} (${j.year})`))];
+                    archiveContainer.innerHTML = volumes.map(v => `<li>${v}</li>`).join('') || '<li>No volumes</li>';
+                }
+            } catch (e) {
+                console.error('Error rendering archive list:', e);
+                const archiveContainer = document.getElementById('archiveList');
+                if (archiveContainer) archiveContainer.innerHTML = '<li>Couldn\'t load</li>';
             }
 
-            const yearsOfPublication = allJournals.length ? new Date().getFullYear() - Math.min(...allJournals.map(j => j.year)) + 1 : 0;
-            const uniqueTags = new Set(allJournals.flatMap(j => j.tags||[]));
-            document.getElementById('statYears').textContent = `${yearsOfPublication}+`;
-            document.getElementById('statAreas').textContent = uniqueTags.size || 6;
-            document.getElementById('statArticles').textContent = `${allJournals.length}+`;
-            document.getElementById('statFaculty').textContent = allFaculty.length || 48;
+            try {
+                const validYears = allJournals.map(j => j.year).filter(y => typeof y === 'number' && !isNaN(y));
+                const yearsOfPublication = validYears.length ? new Date().getFullYear() - Math.min(...validYears) + 1 : 0;
+                const uniqueTags = new Set(allJournals.flatMap(j => j.tags || []));
+                document.getElementById('statYears').textContent = `${yearsOfPublication}+`;
+                document.getElementById('statAreas').textContent = uniqueTags.size || 6;
+                document.getElementById('statArticles').textContent = `${allJournals.length}+`;
+                document.getElementById('statFaculty').textContent = allFaculty.length || 48;
+            } catch (e) {
+                console.error('Error rendering stats:', e);
+            }
         }
 
         function renderAllPages() {
