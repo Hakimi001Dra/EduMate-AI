@@ -15,6 +15,33 @@ function initSupabase() {
     return db;
 }
 
+// Waits for window.supabase (the CDN library) to actually be available before
+// creating the client. Protects against any script-loading timing issue —
+// e.g. a slow network — that could otherwise leave `db` null while the rest
+// of the page carries on and later crashes with "Cannot read properties of
+// null (reading 'from')" the first time something tries to query it.
+async function initSupabaseWithRetry(retries = 20, delayMs = 250) {
+    for (let i = 0; i < retries; i++) {
+        if (window.supabase && typeof window.supabase.createClient === 'function') {
+            return initSupabase();
+        }
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+    throw new Error('Could not load the Supabase library. Check your internet connection, or that cdn.jsdelivr.net isn\'t blocked, then refresh the page.');
+}
+
+// Shows a permanent (non-auto-hiding) red banner at the top of the page.
+// Used for failures serious enough that a 5-second toast isn't enough — the
+// person should see this even if they look at the page a minute later.
+function showPersistentError(msg) {
+    if (document.getElementById('persistentErrorBanner')) return;
+    const banner = document.createElement('div');
+    banner.id = 'persistentErrorBanner';
+    banner.style.cssText = 'position:sticky;top:0;left:0;right:0;z-index:10000;background:#dc2626;color:#fff;padding:0.85rem 1rem;text-align:center;font-family:sans-serif;font-size:14px;';
+    banner.textContent = msg;
+    document.body.insertAdjacentElement('afterbegin', banner);
+}
+
 // ─── Wraps a Supabase call so a hung network request can't leave the
 //     page stuck on "Loading..." forever — it fails after `ms` and lets
 //     the caller show a retry option instead. ─────────────────────────
