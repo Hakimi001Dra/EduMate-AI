@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Department of Sociology — Kaduna State University | KJSSS Journal</title>
+    <meta name="description" content="The Department of Sociology at Kaduna State University publishes the KJSSS peer-reviewed journal and hosts sociological research on urbanisation, gender, policy, and social development in Northern Nigeria. Explore faculty, programmes, news, and submission guidelines.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://sociology-kasu.com.ng/">
+
+    <!-- Open Graph / social sharing -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Department of Sociology — Kaduna State University">
+    <meta property="og:description" content="Peer-reviewed sociological research, faculty, programmes, and the KJSSS journal from the Department of Sociology, Kaduna State University.">
+    <meta property="og:url" content="https://sociology-kasu.com.ng/">
+    <meta property="og:site_name" content="Department of Sociology, KASU">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <noscript>
+        <div style="max-width:700px;margin:2rem auto;padding:1.5rem;border:2px solid #1A4731;border-radius:8px;font-family:sans-serif;">
+            <h1>Department of Sociology — Kaduna State University</h1>
+            <p>This site works best with JavaScript enabled, which loads our current journal articles, faculty, news, and programmes automatically.</p>
+            <p>In the meantime, you can reach the department directly:</p>
+            <ul>
+                <li>Email: sociology@kasu.edu.ng</li>
+                <li>Journal submissions: kjsss@kasu.edu.ng</li>
+                <li>Faculty of Social Sciences, Kaduna State University, Kaduna, Nigeria</li>
+            </ul>
+        </div>
+    </noscript>
+
+<body>
+
+    <!-- ═══════════ TOP BAR ═══════════ -->
+    <div class="top-bar">
+        <div class="inner">
+            <span>📍 Faculty of Social Sciences, Kaduna State University — Kaduna, Nigeria</span>
+            <div class="links">
+                <a href="https://www.kasu.edu.ng" target="_blank" rel="noopener" id="kasuMainLink">KASU Main Site</a>
+                <a href="https://www.kasu.edu.ng/library" target="_blank" rel="noopener" id="eLibraryLink">E-Library</a>
+                <a href="mailto:sociology@kasu.edu.ng" id="contactLink">Contact</a>
+                <a id="adminLink" href="admin.html" style="color: var(--kasu-gold); font-weight: 600;">Admin</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════ HEADER ═══════════ -->
+    <header>
+        <div class="nav-inner">
+            <div class="brand" onclick="showPage('home')">
+                <div class="brand-logo">SΩC</div>
+                <div class="brand-text">
+                    <span class="dept">Sociology Department</span>
+                    <span class="uni">Kaduna State University</span>
+                </div>
+            </div>
+            <nav>
+                <button class="mobile-toggle" onclick="toggleMobileMenu()">☰</button>
+                <ul id="mainNav">
+                    <li><a onclick="showPage('home')" class="active" data-page="home">Home</a></li>
+                    <li><a onclick="showPage('journals')" data-page="journals">Journals</a></li>
+                    <li><a onclick="showPage('faculty')" data-page="faculty">Faculty</a></li>
+                    <li><a onclick="showPage('news')" data-page="news">News & Events</a></li>
+                    <li><a onclick="showPage('programmes')" data-page="programmes">Programmes</a></li>
+                    <li><a onclick="showPage('submit')" class="nav-btn" data-page="submit">Submit Paper</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- ═══════════ BREADCRUMB ═══════════ -->
+    <div class="breadcrumb">
+        <a onclick="showPage('home')">Home</a><span>›</span>
+        <a onclick="showPage('home')">Sociology Dept.</a><span>›</span>
+        <span id="breadcrumbCurrent">Welcome</span>
+    </div>
+
+    <!-- ═══════════ PAGE: HOME ═══════════ -->
+    <div id="page-home" class="page-content active">
+
+        <!-- HERO -->
+        <section class="hero">
+            <div class="hero-inner">
+                <div class="hero-content">
+                    <div class="hero-eyebrow">Advancing Social Science in Northern Nigeria</div>
+                    <h1>Understanding Society,<br><em>Shaping the Future</em></h1>
+                    <p>The Department of Sociology at Kaduna State University publishes peer-reviewed research, drives social inquiry, and prepares the next generation of sociologists for Nigeria and beyond.</p>
+                    <div class="hero-actions">
+                        <button class="btn-primary" onclick="showPage('journals')">Browse Our Journals →</button>
+                        <button class="btn-outline" onclick="document.getElementById('about-section').scrollIntoView({behavior:'smooth'})">About the Department</button>
+                    </div>
+                </div>
+                <div class="hero-stats" id="heroStats">
+                    <div class="stat-item"><span class="num" id="statYears">12+</span><span class="label">Years of Publication</span></div>
+                    <div class="stat-item"><span class="num" id="statAreas">6</span><span class="label">Active Research Areas</span></div>
+                    <hr class="stat-divider">
+                    <div class="stat-item"><span class="num" id="statArticles">200+</span><span class="label">Published Articles</span></div>
+                    <div class="stat-item"><span class="num" id="statFaculty">48</span><span class="label">Faculty & Associates</span></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SEARCH -->
+        <div class="search-banner">
+            <div class="search-inner">
+                <span class="search-label">Search Publications:</span>
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Author, title, keyword, volume…" onkeyup="searchJournals()">
+                    <button onclick="searchJournals()">Search</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- JOURNALS SECTION -->
+        <section class="section-padding section-alt" id="journals-section">
+            <div class="container-custom">
+                <div class="volume-banner">
+                    <div class="volume-banner-left">
+                        <h3>KASU Journal of Sociology & Social Sciences — Vol. 12, Issue 1 (2025)</h3>
+                        <p>Now available online. 14 peer-reviewed articles covering urbanisation, policy, gender, and conflict studies in Nigeria.</p>
+                    </div>
+                    <div class="volume-banner-right">
+                        <button class="btn-primary" onclick="showPage('journals')">Read Full Issue</button>
+                        <button class="btn-outline" style="border-color:rgba(255,255,255,0.3);color:white;">Download PDF</button>
+                    </div>
+                </div>
+
+                <div class="section-header">
+                    <span class="section-eyebrow">Research & Publications</span>
+                    <h2>Featured Journal Articles</h2>
+                    <p>Selected peer-reviewed articles published by faculty, researchers, and contributors.</p>
+                </div>
+
+                <div class="journal-grid" id="featuredJournals">
+                    <div class="loading"><div class="loading-spinner"></div>Loading articles...</div>
+                </div>
+
+                <div style="text-align:center; margin-top:2.5rem;">
+                    <button class="btn-primary" onclick="showPage('journals')">View All Publications →</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- NEWS SECTION -->
+        <section class="section-padding" id="news-section">
+            <div class="container-custom">
+                <div class="section-header">
+                    <span class="section-eyebrow">Departmental Activities</span>
+                    <h2>News & Upcoming Events</h2>
+                </div>
+                <div class="news-grid">
+                    <div class="news-list" id="homeNewsList">
+                        <div class="loading"><div class="loading-spinner"></div>Loading news...</div>
+                    </div>
+                    <div>
+                        <div class="sidebar-card">
+                            <h4>Quick Links</h4>
+                            <ul class="sidebar-list">
+                                <li>Journal Author Guidelines</li>
+                                <li>Editorial Board</li>
+                                <li>Postgraduate Programmes</li>
+                                <li>Undergraduate Programmes</li>
+                                <li>Research Ethics Policy</li>
+                                <li>Staff Directory</li>
+                                <li>Contact the HOD</li>
+                            </ul>
+                        </div>
+                        <div class="sidebar-card">
+                            <h4>Archive by Volume</h4>
+                            <ul class="sidebar-list" id="archiveList">
+                                <li>Loading...</li>
+                            </ul>
+                        </div>
+                        <div class="sidebar-card">
+                            <h4>Indexed In</h4>
+                            <ul class="sidebar-list">
+                                <li>African Journals Online (AJOL)</li>
+                                <li>Google Scholar</li>
+                                <li>NigeriaJournalsOnline (NJOL)</li>
+                                <li>EBSCO Academic</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ABOUT SECTION -->
+        <section class="section-padding section-alt" id="about-section">
+            <div class="container-custom">
+                <div class="about-grid">
+                    <div class="about-text">
+                        <span class="section-eyebrow">About the Department</span>
+                        <h2>Rooted in Kaduna.<br>Engaged with the World.</h2>
+                        <p>The Department of Sociology at Kaduna State University is one of the foremost centres for sociological research and teaching in North-Central Nigeria.</p>
+                        <p>Our research programmes address the most pressing social challenges in Kaduna State and Nigeria at large.</p>
+                        <div class="about-features">
+                            <div class="feature-row">
+                                <div class="feature-icon">📚</div>
+                                <div class="feature-text">
+                                    <h5>Peer-Reviewed Research</h5>
+                                    <p>All publications undergo rigorous double-blind review.</p>
+                                </div>
+                            </div>
+                            <div class="feature-row">
+                                <div class="feature-icon">🎓</div>
+                                <div class="feature-text">
+                                    <h5>Academic Programmes</h5>
+                                    <p>B.Sc., M.Sc., and Ph.D. in Sociology.</p>
+                                </div>
+                            </div>
+                            <div class="feature-row">
+                                <div class="feature-icon">🤝</div>
+                                <div class="feature-text">
+                                    <h5>Community Partnerships</h5>
+                                    <p>Collaborative research across Kaduna State.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="info-panels" id="infoPanels">
+                        <div class="info-panel">
+                            <div class="info-panel-header" onclick="togglePanel(this)">
+                                <h4>📋 Editorial Policy & Scope</h4>
+                                <span>›</span>
+                            </div>
+                            <div class="info-panel-body" style="display:none;">
+                                The KASU Journal of Sociology & Social Sciences (KJSSS) publishes original research in all areas of sociology. Articles should be 6,000–9,000 words including references, formatted in APA 7th edition.
+                            </div>
+                        </div>
+                        <div class="info-panel">
+                            <div class="info-panel-header" onclick="togglePanel(this)">
+                                <h4>👥 Head of Department</h4>
+                                <span>›</span>
+                            </div>
+                            <div class="info-panel-body" style="display:none;">
+                                <strong>Dr. Jafar Abdurkadir</strong><br>
+                                Head of Department<br>
+                                Community Development and Gender Studies expertise<br>
+                                <!-- TODO: verify this email — "abdul.jaafar" doesn't match the name
+                                     "Jafar Abdurkadir" above. Confirm the correct address and update. -->
+                                Email: abdul.jaafar@kasu.edu.ng<br>
+                                Office: Department of Sociology<br>
+                            </div>
+                        </div>
+                        <div class="info-panel">
+                            <div class="info-panel-header" onclick="togglePanel(this)">
+                                <h4>🌍 Research Areas</h4>
+                                <span>›</span>
+                            </div>
+                            <div class="info-panel-body" style="display:none;">
+                                Urban Sociology · Rural Development · Social Stratification · Political Sociology · Sociology of Health · Gender & Society · Criminology
+                            </div>
+                        </div>
+                        <div class="info-panel">
+                            <div class="info-panel-header" onclick="togglePanel(this)">
+                                <h4>📅 Academic Calendar 2024/25</h4>
+                                <span>›</span>
+                            </div>
+                            <div class="info-panel-body" style="display:none;">
+                                <strong>First Semester:</strong> October – February<br>
+                                <strong>Second Semester:</strong> March – July<br>
+                                <strong>Journal Submission Deadlines:</strong> March · September
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FACULTY SECTION -->
+        <section class="section-padding" id="faculty-section">
+            <div class="container-custom">
+                <div class="section-header">
+                    <span class="section-eyebrow">Our People</span>
+                    <h2>Faculty & Staff</h2>
+                    <p>Meet the scholars leading research and teaching at the Department of Sociology.</p>
+                </div>
+                <div class="faculty-grid" id="homeFacultyGrid">
+                    <div class="loading"><div class="loading-spinner"></div>Loading faculty...</div>
+                </div>
+                <div style="text-align:center; margin-top:2rem;">
+                    <button class="btn-primary" onclick="showPage('faculty')">View All Faculty →</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- SUBMIT SECTION -->
+        <section class="section-padding section-dark" id="submit-section">
+            <div class="container-custom">
+                <div class="submit-grid">
+                    <div>
+                        <div class="section-header">
+                            <span class="section-eyebrow" style="color:var(--kasu-gold);">For Researchers</span>
+                            <h2 style="color:#fff;">Submit Your Research</h2>
+                            <p>We welcome original research from Nigerian and international scholars.</p>
+                        </div>
+                        <div id="quickDeadlineBanner" style="background:rgba(200,148,26,0.15);border:1px solid rgba(200,148,26,0.4);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;font-size:13.5px;color:#fff;display:none;"></div>
+                        <ol class="steps-list">
+                            <li>Manuscripts must be original and not under consideration elsewhere</li>
+                            <li>Each research paper should not exceed 6,000 words</li>
+                            <li>Prepare in Microsoft Word, Times New Roman, 12-point font, double-spaced</li>
+                            <li>Include an abstract of no more than 250 words with five keywords</li>
+                            <li>References and citations should follow APA 7th Edition style</li>
+                            <li>Provide author details on a separate title page to allow blind peer review</li>
+                            <li>All submissions undergo a double-blind peer review process</li>
+                            <li>Manuscripts must be free of plagiarism (maximum similarity index: 15%)</li>
+                            <li>Disclose any use of AI tools in manuscript preparation</li>
+                            <li>Submit by <span id="quickDeadlineText">the deadline shown above</span> to <span id="quickEmailText">the editorial office</span></li>
+                        </ol>
+                    </div>
+                    <div class="submit-card">
+                        <h4>Quick Submission Form</h4>
+                        <form id="submissionForm" onsubmit="submitPaper(event)">
+                            <div class="form-row">
+                                <label>Author Name(s)</label>
+                                <input type="text" id="subAuthor" placeholder="Dr. Jane Doe; Prof. John Musa" required>
+                            </div>
+                            <div class="form-row">
+                                <label>Email Address</label>
+                                <input type="email" id="subEmail" placeholder="author@institution.edu.ng" required>
+                            </div>
+                            <div class="form-row">
+                                <label>Manuscript Title</label>
+                                <input type="text" id="subTitle" placeholder="Full title of your paper" required>
+                            </div>
+                            <div class="form-row">
+                                <label>Research Area</label>
+                                <select id="subArea">
+                                    <option>Urban Sociology</option>
+                                    <option>Gender & Society</option>
+                                    <option>Political Sociology</option>
+                                    <option>Health Sociology</option>
+                                    <option>Environmental Sociology</option>
+                                    <option>Rural Development</option>
+                                    <option>Criminology</option>
+                                </select>
+                            </div>
+                            <div class="form-row">
+                                <label>Abstract (max 250 words)</label>
+                                <textarea id="subAbstract" placeholder="Paste your abstract here…" rows="3" required oninput="updateWordCount('subAbstract','quickAbstractCount',250)"></textarea>
+                                <span id="quickAbstractCount" style="font-size:11px;color:rgba(255,255,255,0.5);">0/250 words</span>
+                            </div>
+                            <div class="form-row">
+                                <label>Keywords (exactly 5, comma separated)</label>
+                                <input type="text" id="subKeywords" placeholder="e.g. urbanisation, poverty, youth, policy, Kaduna">
+                            </div>
+                            <div class="form-row">
+                                <label>AI Tool Usage Disclosure</label>
+                                <textarea id="subAiTools" placeholder="Describe any AI tools used in preparing this manuscript, or write 'None'." rows="2"></textarea>
+                            </div>
+                            <div class="form-row">
+                                <label>Manuscript File (PDF or Word, max 20MB) — remove author details for blind review</label>
+                                <div id="quickManuscriptUploadContainer" style="color:#767676;font-size:13px;padding:0.75rem;border:1px dashed #D8D8D8;border-radius:6px;">Loading upload control…</div>
+                                <input type="hidden" id="subManuscriptPath">
+                                <input type="hidden" id="subManuscriptName">
+                            </div>
+                            <div style="margin-top: 1.25rem; display:flex; gap: 1rem; flex-wrap:wrap;">
+                                <button type="submit" class="btn-primary" id="quickSubmitBtn" style="flex:1; text-align:center;">Submit →</button>
+                                <button type="button" class="btn-outline" id="quickEmailBtn" style="flex:1; text-align:center;">Email</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- ═══════════ PAGE: JOURNALS ═══════════ -->
+    <div id="page-journals" class="page-content">
+        <div class="hero" style="padding:3rem 2rem;">
+            <div class="container-custom">
+                <h1 style="color:white;font-family:'Playfair Display',serif;font-size:2.5rem;">Research Journals</h1>
+                <p style="color:rgba(255,255,255,0.7);font-size:1.1rem;max-width:600px;">The KASU Journal of Sociology & Social Sciences.</p>
+            </div>
+        </div>
+        <div class="search-banner">
+            <div class="search-inner">
+                <span class="search-label">Search:</span>
+                <div class="search-box">
+                    <input type="text" id="searchJournalsPage" placeholder="Author, title, keyword…" onkeyup="searchJournalsPage()">
+                    <button onclick="searchJournalsPage()">Search</button>
+                </div>
+            </div>
+        </div>
+        <section class="section-padding section-alt">
+            <div class="container-custom">
+                <div class="journal-grid" id="allJournalsGrid">
+                    <div class="loading"><div class="loading-spinner"></div>Loading all journals...</div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- ═══════════ PAGE: FACULTY ═══════════ -->
+    <div id="page-faculty" class="page-content">
+        <div class="hero" style="padding:3rem 2rem;">
+            <div class="container-custom">
+                <h1 style="color:white;font-family:'Playfair Display',serif;font-size:2.5rem;">Our Faculty</h1>
+                <p style="color:rgba(255,255,255,0.7);font-size:1.1rem;max-width:600px;">Dedicated scholars committed to excellence.</p>
+            </div>
+        </div>
+        <section class="section-padding">
+            <div class="container-custom">
+                <div class="faculty-grid" id="allFacultyGrid">
+                    <div class="loading"><div class="loading-spinner"></div>Loading faculty...</div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- ═══════════ PAGE: NEWS ═══════════ -->
+    <div id="page-news" class="page-content">
+        <div class="hero" style="padding:3rem 2rem;">
+            <div class="container-custom">
+                <h1 style="color:white;font-family:'Playfair Display',serif;font-size:2.5rem;">News & Events</h1>
+                <p style="color:rgba(255,255,255,0.7);font-size:1.1rem;max-width:600px;">Latest announcements and activities.</p>
+            </div>
+        </div>
+        <section class="section-padding">
+            <div class="container-custom">
+                <div class="news-list" id="allNewsList" style="max-width:800px;margin:0 auto;">
+                    <div class="loading"><div class="loading-spinner"></div>Loading news...</div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- ═══════════ PAGE: PROGRAMMES ═══════════ -->
+    <div id="page-programmes" class="page-content">
+        <div class="hero" style="padding:3rem 2rem;">
+            <div class="container-custom">
+                <h1 style="color:white;font-family:'Playfair Display',serif;font-size:2.5rem;">Academic Programmes</h1>
+                <p style="color:rgba(255,255,255,0.7);font-size:1.1rem;max-width:600px;">Undergraduate and postgraduate programmes.</p>
+            </div>
+        </div>
+        <section class="section-padding">
+            <div class="container-custom">
+                <div class="grid" id="programmesGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.5rem;">
+                    <div class="loading"><div class="loading-spinner"></div>Loading programmes...</div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- ═══════════ PAGE: SUBMIT ═══════════ -->
+    <div id="page-submit" class="page-content">
+        <div class="hero" style="padding:3rem 2rem;">
+            <div class="container-custom">
+                <h1 style="color:white;font-family:'Playfair Display',serif;font-size:2.5rem;">Submit Your Research</h1>
+                <p style="color:rgba(255,255,255,0.7);font-size:1.1rem;max-width:600px;">Share your work with the academic community.</p>
+            </div>
+        </div>
+        <section class="section-padding section-alt">
+            <div class="container-custom" style="max-width:800px;">
+                <div id="fullDeadlineBanner" style="background:#FFF3E0;border:1px solid #E0A420;border-radius:8px;padding:0.85rem 1.1rem;margin-bottom:1.5rem;font-size:14px;color:#7A5200;display:none;"></div>
+
+                <div style="background:white;border-radius:12px;padding:2rem;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:1.5rem;">
+                    <h2 style="font-family:'Playfair Display',serif;font-size:1.4rem;margin-bottom:1rem;color:var(--kasu-green);">KJSSS Submission Guidelines</h2>
+                    <ol style="padding-left:1.2rem;color:var(--text-secondary);font-size:14.5px;line-height:1.9;">
+                        <li>Manuscripts must be original and not under consideration elsewhere.</li>
+                        <li>Each research paper should not exceed 6,000 words.</li>
+                        <li>Prepare in Microsoft Word, Times New Roman, 12-point font, double-spaced.</li>
+                        <li>Include an abstract of no more than 250 words with five keywords.</li>
+                        <li>References and citations should follow APA 7th Edition style.</li>
+                        <li>Provide author details on a separate title page to allow blind peer review.</li>
+                        <li>All submissions undergo a double-blind peer review process.</li>
+                        <li>Manuscripts must be free of plagiarism (maximum similarity index: 15%).</li>
+                        <li>Disclose any use of AI tools in manuscript preparation.</li>
+                        <li>Submit by <strong id="fullDeadlineText">the deadline shown above</strong> to <strong id="fullEmailText">the editorial office</strong>.</li>
+                    </ol>
+                </div>
+
+                <div style="background:white;border-radius:12px;padding:2rem;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
+                    <h2 style="font-family:'Playfair Display',serif;font-size:1.8rem;margin-bottom:1.5rem;">Manuscript Submission</h2>
+                    <form id="submissionFormFull" onsubmit="submitPaper(event)">
+                        <div class="form-group" style="margin-bottom:1rem;">
+                            <label style="display:block;font-weight:500;margin-bottom:4px;">Author Name(s) *</label>
+                            <input type="text" id="subAuthorFull" required style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;">
+                        </div>
+                        <div class="form-group" style="margin-bottom:1rem;">
+                            <label style="display:block;font-weight:500;margin-bottom:4px;">Email *</label>
+                            <input type="email" id="subEmailFull" required style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;">
+                        </div>
+                        <div class="form-group" style="margin-bottom:1rem;">
+                            <label style="display:block;font-weight:500;margin-bottom:4px;">Title *</label>
+                            <input type="text" id="subTitleFull" required style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;">
+                        </div>
+                        <div class="form-group" style="margin-bottom:1rem;">
+                            <label style="display:block;font-weight:500;margin-bottom:4px;">Research Area</label>
+                            <select id="subAreaFull" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;">
+                                <option>Urban Sociology</option>
+                                <option>Gender & Society</option>
+                                <option>Political Sociology</option>
+                                <option>Health Sociology</option>
+                                <option>Environmental Sociology</option>
+                                <option>Rural Development</option>
+                                <option>Criminology</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom:1rem;">
+                            <label style="display:block;font-weight:500;margin-bottom:4px;">Abstract * (max 250 words)</label>
+                            <textarea id="subAbstractFull" rows="4" required style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;resize:vertical;" oninput="updateWordCount('subAbstractFull','fullAbstractCount',250)"></textarea>
+                            <span id="fullAbstractCount" style="font-size:11px;color:var(--text-muted);">0/250 words</span>
+                        </div>
+                        <div class="form-group" style="margin-bottom:1rem;">
+                            <label style="display:block;font-weight:500;margin-bottom:4px;">Keywords (exactly 5, comma separated) *</label>
+                            <input type="text" id="subKeywordsFull" required placeholder="e.g. urbanisation, poverty, youth, policy, Kaduna" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;">
+                        </div>
+                        <div class="form-group" style="margin-bottom:1rem;">
+                            <label style="display:block;font-weight:500;margin-bottom:4px;">AI Tool Usage Disclosure</label>
+                            <textarea id="subAiToolsFull" rows="2" placeholder="Describe any AI tools used in preparing this manuscript, or write 'None'." style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;resize:vertical;"></textarea>
+                        </div>
+                        <div class="form-group" style="margin-bottom:1rem;">
+                            <label style="display:block;font-weight:500;margin-bottom:4px;">Manuscript File (PDF or Word, max 20MB) — remove author details for blind review</label>
+                            <div id="fullManuscriptUploadContainer" style="color:#767676;font-size:13px;padding:0.75rem;border:1px dashed #D8D8D8;border-radius:6px;">Loading upload control…</div>
+                            <input type="hidden" id="subManuscriptPathFull">
+                            <input type="hidden" id="subManuscriptNameFull">
+                        </div>
+                        <button type="submit" class="btn-primary" id="fullSubmitBtn" style="width:100%;text-align:center;">Submit →</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </div>
+
+
+    <!-- ═══════════ FOOTER ═══════════ -->
+    <footer>
+        <div class="footer-inner">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <div class="kasu-badge">
+                        <div class="kasu-badge-logo">SΩC</div>
+                        <div>
+                            <div style="font-family:'Playfair Display',serif;font-size:15px;font-weight:600;color:white;">Department of Sociology</div>
+                            <div style="font-size:12px;color:rgba(255,255,255,0.5);">Kaduna State University</div>
+                        </div>
+                    </div>
+                    <p>Advancing sociological knowledge in Northern Nigeria.</p>
+                    <p style="font-size:12px;">Faculty of Social Sciences, KASU<br>sociology@kasu.edu.ng</p>
+                </div>
+                <div class="footer-col">
+                    <h5>Quick Links</h5>
+                    <ul>
+                        <li><a onclick="showPage('journals')">Journals</a></li>
+                        <li><a onclick="showPage('faculty')">Faculty</a></li>
+                        <li><a onclick="showPage('news')">News</a></li>
+                        <li><a onclick="showPage('programmes')">Programmes</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h5>Resources</h5>
+                    <ul>
+                        <li><a href="https://www.kasu.edu.ng/library" target="_blank" rel="noopener">KASU E-Library</a></li>
+                        <li><a href="https://www.ajol.info" target="_blank" rel="noopener">AJOL Listings</a></li>
+                        <li><a onclick="document.getElementById('about-section').scrollIntoView({behavior:'smooth'})">Research Ethics</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <span>© 2025 Department of Sociology, Kaduna State University</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ═══════════ TOAST ═══════════ -->
+    <div id="toast" class="toast"></div>
+
+    <!-- ═══════════ JAVASCRIPT ═══════════ -->
+
+    <!-- Shared code: Supabase config, FileUpload class, toast helper -->
+    <script src="shared.js" onerror="document.body.insertAdjacentHTML('afterbegin', '<div style=&quot;background:#fee2e2;color:#dc2626;padding:1rem;text-align:center;font-family:sans-serif;font-size:14px;&quot;>\u26a0\ufe0f Could not load shared.js \u2014 file uploads and some features will not work. Check that shared.js was uploaded to the same folder as this page.</div>')"></script>
+    <script src="script.js"></script>
+</body>
+</html>
