@@ -1,6 +1,6 @@
             // ─── ADMIN PAGE STATE ────────────────────────────────
         let adminSession = null;
-        let siteSettings = { submission_deadline: null, submission_email: 'kjsss@kasu.edu.ng' };
+        let siteSettings = { submission_deadline: null, submission_email: 'kjsss@kasu.edu.ng', site_logo_url: null };
 
         function showAdminLoginView() {
             document.getElementById('adminLoginView').style.display = 'block';
@@ -54,17 +54,25 @@
 
         async function loadAdminSettings() {
             try {
-                const { data, error } = await db.from('settings').select('*').in('key', ['submission_deadline', 'submission_email']);
+                const { data, error } = await db.from('settings').select('*').in('key', ['submission_deadline', 'submission_email', 'site_logo_url']);
                 if (error) throw error;
                 (data || []).forEach(row => {
                     if (row.key === 'submission_deadline') siteSettings.submission_deadline = row.value;
                     if (row.key === 'submission_email') siteSettings.submission_email = row.value;
+                    if (row.key === 'site_logo_url') siteSettings.site_logo_url = row.value;
                 });
             } catch (e) { console.warn('Could not load settings:', e.message); }
             const deadlineField = document.getElementById('setSubmissionDeadline');
             const emailField = document.getElementById('setSubmissionEmail');
+            const logoUrlField = document.getElementById('setSiteLogoUrl');
             if (deadlineField) deadlineField.value = siteSettings.submission_deadline || '';
             if (emailField) emailField.value = siteSettings.submission_email || '';
+            if (logoUrlField) logoUrlField.value = siteSettings.site_logo_url || '';
+
+            const logoPreview = document.getElementById('logoUpload_preview');
+            if (logoPreview && siteSettings.site_logo_url) {
+                logoPreview.innerHTML = `<img src="${siteSettings.site_logo_url}" alt="Current logo" style="max-width:80px;max-height:80px;border-radius:8px;"><br><span style="font-size:11px;color:var(--text-muted);">Current logo</span>`;
+            }
         }
 
         function showAdminForm(type) {
@@ -139,9 +147,25 @@
                             <button class="edit-btn" onclick="updateSubmissionStatus('${s.id}','in_review')">In Review</button>
                             <button class="edit-btn" onclick="updateSubmissionStatus('${s.id}','accepted')">Accept</button>
                             <button class="delete-btn" onclick="updateSubmissionStatus('${s.id}','rejected')">Reject</button>
+                            <button class="edit-btn" onclick="resendSubmissionNotification('${s.id}')">🔔 Notify</button>
                         </div></td>
                     </tr>`).join('')}</tbody></table>`;
             } catch (e) { document.getElementById('adminSubmissionsList').innerHTML = '<p style="color:red;">Error loading submissions</p>'; }
+        }
+
+        // Manually re-sends the admin notification email for a submission —
+        // useful if the automatic one (sent right after the author submits)
+        // failed for any reason (e.g. the Edge Function wasn't deployed yet
+        // at the time of submission).
+        async function resendSubmissionNotification(id) {
+            try {
+                const { data: record, error } = await db.from('submissions').select('*').eq('id', id).single();
+                if (error) throw error;
+                await withTimeout(db.functions.invoke('notify-submission', { body: { record } }), 10000);
+                showToast('Notification email sent', 'success');
+            } catch (e) {
+                showToast('Could not send notification: ' + (e.message || 'unknown error'), 'error');
+            }
         }
 
         async function downloadManuscript(path) {
@@ -340,13 +364,15 @@
                     { key: 'site_name', value: document.getElementById('setSiteName').value },
                     { key: 'site_tagline', value: document.getElementById('setTagline').value },
                     { key: 'submission_deadline', value: document.getElementById('setSubmissionDeadline').value || '' },
-                    { key: 'submission_email', value: document.getElementById('setSubmissionEmail').value || 'kjsss@kasu.edu.ng' }
+                    { key: 'submission_email', value: document.getElementById('setSubmissionEmail').value || 'kjsss@kasu.edu.ng' },
+                    { key: 'site_logo_url', value: document.getElementById('setSiteLogoUrl').value || '' }
                 ];
                 for (const s of settings) {
                     await db.from('settings').upsert({ key: s.key, value: s.value, type: 'text' });
                 }
                 siteSettings.submission_deadline = document.getElementById('setSubmissionDeadline').value || null;
                 siteSettings.submission_email = document.getElementById('setSubmissionEmail').value || 'kjsss@kasu.edu.ng';
+                siteSettings.site_logo_url = document.getElementById('setSiteLogoUrl').value || null;
                 showToast('Settings saved! It will show on the live site next page load.', 'success');
             } catch (e) { showToast(e.message || 'Error saving settings', 'error'); }
         }
