@@ -1,0 +1,271 @@
+// ═══════════════════════════════════════════════════════════
+// shared.js — code used by BOTH index.html (public) and admin.html
+// Keeping this in one file means the Supabase config, upload logic,
+// and toast helper only need to be maintained in one place.
+// ═══════════════════════════════════════════════════════════
+
+// ═══ Supabase project credentials ═══
+const SUPABASE_URL = 'https://xonqebmlxlbvvhvmhhxv.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhvbnFlYm1seGxidnZodm1oaHh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMzczMTEsImV4cCI6MjEwMTYxMzMxMX0.8txFv3_7FH0XGbfXSy8A17t9xsPoGD-kCkZBARhyXQc';
+
+let db = null;
+
+function initSupabase() {
+    db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    return db;
+}
+
+// ─── Wraps a Supabase call so a hung network request can't leave the
+//     page stuck on "Loading..." forever — it fails after `ms` and lets
+//     the caller show a retry option instead. ─────────────────────────
+function withTimeout(promise, ms = 15000) {
+    return Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out. Please check your connection and try again.')), ms))
+    ]);
+}
+
+// ─── TOAST ──────────────────────────────────────────
+function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    if (!t) { console.log(`[toast:${type}]`, msg); return; }
+    t.textContent = msg;
+    t.className = `toast toast-${type}`;
+    t.style.display = 'block';
+    setTimeout(() => t.style.display = 'none', 5000);
+}
+
+// ─── FILE UPLOAD CLASS ─────────────────────────────
+        class FileUpload {
+            constructor(options = {}) {
+                this.bucket = options.bucket || 'journal-pdfs';
+                this.accept = options.accept || '.pdf';
+                this.label = options.label || 'Upload File';
+                this.onUpload = options.onUpload || (() => {});
+                this.maxSize = options.maxSize || 50 * 1024 * 1024;
+                this.containerId = options.containerId || 'fileUploadContainer';
+                this.isPrivate = options.isPrivate || false;
+            }
+
+            render() {
+                return `
+                    <div class="file-upload-wrapper">
+                        <div class="file-upload-area">
+                            <input type="file" 
+                                   id="${this.containerId}_input" 
+                                   accept="${this.accept}" 
+                                   style="display:none;" />
+                            <button type="button" 
+                                    class="btn-primary" 
+                                    onclick="document.getElementById('${this.containerId}_input').click()">
+                                📁 ${this.label}
+                            </button>
+                            <div id="${this.containerId}_status" class="upload-status"></div>
+                            <div id="${this.containerId}_progress" class="progress-container">
+                                <div class="progress-bar">
+                                    <div id="${this.containerId}_progressFill" class="progress-fill"></div>
+                                </div>
+                                <span id="${this.containerId}_progressText" class="progress-text">0%</span>
+                            </div>
+                            <div id="${this.containerId}_preview" class="file-preview"></div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            init() {
+                const fileInput = document.getElementById(`${this.containerId}_input`);
+                if (!fileInput) return;
+
+                fileInput.addEventListener('change', async (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+
+                    if (file.size > this.maxSize) {
+                        alert(`File is too large. Maximum size is ${this.maxSize / (1024 * 1024)}MB.`);
+                        fileInput.value = '';
+                        return;
+                    }
+
+                    const statusEl = document.getElementById(`${this.containerId}_status`);
+                    const progressContainer = document.getElementById(`${this.containerId}_progress`);
+                    const progressFill = document.getElementById(`${this.containerId}_progressFill`);
+                    const progressText = document.getElementById(`${this.containerId}_progressText`);
+                    const previewEl = document.getElementById(`${this.containerId}_preview`);
+
+                    progressContainer.style.display = 'block';
+                    statusEl.textContent = `Uploading ${file.name}...`;
+
+                    try {
+                        const { path, url } = await this.uploadFile(file);
+
+                        statusEl.innerHTML = url
+                            ? `✅ Uploaded: <a href="${url}" target="_blank">${file.name}</a>`
+                            : `✅ Uploaded: ${file.name} (private — visible to reviewers only)`;
+                        progressFill.style.width = '100%';
+                        progressText.textContent = '100%';
+
+                        this.showPreview(url, file.type, file.name, previewEl);
+                        this.onUpload(path, url, file.name);
+
+                        setTimeout(() => {
+                            progressContainer.style.display = 'none';
+                            progressFill.style.width = '0%';
+                            progressText.textContent = '0%';
+                        }, 5000);
+
+                    } catch (error) {
+                        statusEl.innerHTML = `❌ Error: ${error.message}`;
+                        progressContainer.style.display = 'none';
+                    }
+                });
+            }
+
+            async uploadFile(file) {
+                const fileExt = file.name.split('.').pop();
+                const filePath = `${Date.now()}_${Math.random().toString(36).slice(2,8)}.${fileExt}`;
+
+                const { data, error } = await db
+                    .storage
+                    .from(this.bucket)
+                    .upload(filePath, file, {
+                        cacheControl: '3600',
+                        upsert: false
+                    });
+
+                if (error) throw new Error(error.message);
+
+                if (this.isPrivate) {
+                    // Private bucket: don't request a public URL (bucket has no public access).
+                    return { path: filePath, url: null };
+                }
+
+                const { data: { publicUrl } } = db
+                    .storage
+                    .from(this.bucket)
+                    .getPublicUrl(filePath);
+
+                return { path: filePath, url: publicUrl };
+            }
+
+            showPreview(url, fileType, fileName, previewEl) {
+                if (!url) {
+                    previewEl.innerHTML = `<span style="font-size:12px;color:var(--kasu-green);">📎 ${fileName} — submitted for review</span>`;
+                    return;
+                }
+                if (fileType.startsWith('image/')) {
+                    previewEl.innerHTML = `
+                        <img src="${url}" alt="Preview">
+                        <br>
+                        <a href="${url}" target="_blank" style="font-size:12px;color:var(--kasu-green);">View full image</a>
+                    `;
+                } else if (fileType === 'application/pdf') {
+                    previewEl.innerHTML = `
+                        <a href="${url}" target="_blank" class="btn-primary" style="font-size:12px;padding:6px 12px;display:inline-block;">📄 View PDF</a>
+                    `;
+                } else {
+                    previewEl.innerHTML = `
+                        <a href="${url}" target="_blank" style="font-size:12px;color:var(--kasu-green);">📎 Download file</a>
+                    `;
+                }
+            }
+        }
+
+        // ─── INIT FILE UPLOADS ─────────────────────────────
+        function initFileUploads() {
+            // PDF Upload (journal articles - public)
+            const pdfContainer = document.getElementById('pdfUploadContainer');
+            if (pdfContainer) {
+                const pdfUpload = new FileUpload({
+                    bucket: 'journal-pdfs',
+                    accept: '.pdf',
+                    label: '📄 Upload PDF',
+                    maxSize: 100 * 1024 * 1024,
+                    containerId: 'pdfUpload',
+                    onUpload: (path, url) => {
+                        document.getElementById('ajPdfUrl').value = url;
+                        showToast('PDF uploaded successfully!', 'success');
+                    }
+                });
+                pdfContainer.innerHTML = pdfUpload.render();
+                pdfUpload.init();
+            }
+
+            // Photo Upload (faculty - public)
+            const photoContainer = document.getElementById('photoUploadContainer');
+            if (photoContainer) {
+                const photoUpload = new FileUpload({
+                    bucket: 'faculty-photos',
+                    accept: 'image/*',
+                    label: '📸 Upload Photo',
+                    maxSize: 10 * 1024 * 1024,
+                    containerId: 'photoUpload',
+                    onUpload: (path, url) => {
+                        document.getElementById('afPhoto').value = url;
+                        showToast('Photo uploaded successfully!', 'success');
+                    }
+                });
+                photoContainer.innerHTML = photoUpload.render();
+                photoUpload.init();
+            }
+
+            // Image Upload (news - public)
+            const imageContainer = document.getElementById('imageUploadContainer');
+            if (imageContainer) {
+                const imageUpload = new FileUpload({
+                    bucket: 'news-images',
+                    accept: 'image/*',
+                    label: '🖼️ Upload Image',
+                    maxSize: 20 * 1024 * 1024,
+                    containerId: 'imageUpload',
+                    onUpload: (path, url) => {
+                        document.getElementById('anImage').value = url;
+                        showToast('Image uploaded successfully!', 'success');
+                    }
+                });
+                imageContainer.innerHTML = imageUpload.render();
+                imageUpload.init();
+            }
+
+            // Manuscript Upload — Quick Submission Form (private, blind review)
+            const quickManuscriptContainer = document.getElementById('quickManuscriptUploadContainer');
+            if (quickManuscriptContainer) {
+                const manuscriptUpload = new FileUpload({
+                    bucket: 'manuscripts',
+                    accept: '.pdf,.doc,.docx',
+                    label: '📄 Upload Manuscript',
+                    maxSize: 20 * 1024 * 1024,
+                    containerId: 'quickManuscriptUpload',
+                    isPrivate: true,
+                    onUpload: (path, url, fileName) => {
+                        document.getElementById('subManuscriptPath').value = path;
+                        document.getElementById('subManuscriptName').value = fileName;
+                        showToast('Manuscript uploaded!', 'success');
+                    }
+                });
+                quickManuscriptContainer.innerHTML = manuscriptUpload.render();
+                manuscriptUpload.init();
+            }
+
+            // Manuscript Upload — Full Submit page form (private, blind review)
+            const fullManuscriptContainer = document.getElementById('fullManuscriptUploadContainer');
+            if (fullManuscriptContainer) {
+                const manuscriptUploadFull = new FileUpload({
+                    bucket: 'manuscripts',
+                    accept: '.pdf,.doc,.docx',
+                    label: '📄 Upload Manuscript',
+                    maxSize: 20 * 1024 * 1024,
+                    containerId: 'fullManuscriptUpload',
+                    isPrivate: true,
+                    onUpload: (path, url, fileName) => {
+                        document.getElementById('subManuscriptPathFull').value = path;
+                        document.getElementById('subManuscriptNameFull').value = fileName;
+                        showToast('Manuscript uploaded!', 'success');
+                    }
+                });
+                fullManuscriptContainer.innerHTML = manuscriptUploadFull.render();
+                manuscriptUploadFull.init();
+            }
+        }
+
+        
