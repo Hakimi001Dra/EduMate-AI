@@ -6,7 +6,8 @@
 
         let siteSettings = {
             submission_deadline: null,   // e.g. '2026-07-30' — set by admin
-            submission_email: 'kjsss@kasu.edu.ng'
+            submission_email: 'kjsss@kasu.edu.ng',
+            site_logo_url: null
         };
 
         // ─── TOAST ──────────────────────────────────────────
@@ -163,17 +164,28 @@
             try {
                 const { data, error } = await db.from('settings')
                     .select('*')
-                    .in('key', ['submission_deadline', 'submission_email']);
+                    .in('key', ['submission_deadline', 'submission_email', 'site_logo_url']);
                 if (error) throw error;
                 (data || []).forEach(row => {
                     if (row.key === 'submission_deadline') siteSettings.submission_deadline = row.value;
                     if (row.key === 'submission_email') siteSettings.submission_email = row.value;
+                    if (row.key === 'site_logo_url') siteSettings.site_logo_url = row.value;
                 });
             } catch (e) {
                 console.warn('Could not load site settings, using defaults:', e.message);
             } finally {
                 renderSubmissionInfo();
+                applySiteLogo();
             }
+        }
+
+        function applySiteLogo() {
+            const logoEl = document.getElementById('brandLogo');
+            if (!logoEl) return;
+            if (siteSettings.site_logo_url) {
+                logoEl.innerHTML = `<img src="${siteSettings.site_logo_url}" alt="Department of Sociology logo" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+            }
+            // If no logo is set, the default "SΩC" text (already in the HTML) stays as-is.
         }
 
         function renderSubmissionInfo() {
@@ -234,7 +246,8 @@
 
         function renderJournalCard(a) {
             const tags = a.tags || [];
-            const pdfLink = a.pdf_url ? `<a href="${a.pdf_url}" target="_blank" style="font-size:11px;color:var(--kasu-green);">📄 PDF</a>` : '';
+            const fileLabel = a.pdf_url && /\.(doc|docx)(\?|$)/i.test(a.pdf_url) ? '📄 File' : '📄 PDF';
+            const pdfLink = a.pdf_url ? `<a href="${a.pdf_url}" target="_blank" style="font-size:11px;color:var(--kasu-green);">${fileLabel}</a>` : '';
             return `<div class="journal-card">
                 <div class="journal-meta">
                     <span class="journal-vol">Vol. ${a.volume} · ${a.year}</span>
@@ -301,7 +314,7 @@
                     <p style="font-size:14px;color:var(--text-muted);margin:1rem 0;">Vol. ${a.volume} · ${a.year}</p>
                     <h2>Abstract</h2>
                     <p style="color:var(--text-secondary);line-height:1.8;">${a.abstract}</p>
-                    ${a.pdf_url ? `<a href="${a.pdf_url}" target="_blank" class="btn-primary" style="display:inline-block;margin-top:1rem;">📄 Download PDF</a>` : ''}
+                    ${a.pdf_url ? `<a href="${a.pdf_url}" target="_blank" class="btn-primary" style="display:inline-block;margin-top:1rem;">📄 Download File</a>` : ''}
                 </div>`;
                 document.body.appendChild(modal);
                 modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
@@ -403,8 +416,18 @@
                     manuscript_filename: document.getElementById('subManuscriptName').value || null,
                 };
 
-                const { error } = await db.from('submissions').insert(payload);
+                const { data: inserted, error } = await db.from('submissions').insert(payload).select().single();
                 if (error) throw error;
+
+                // Notify the admin by email. This calls the Edge Function directly —
+                // no Database Webhook needs to be configured in the Supabase dashboard.
+                // If this fails (e.g. function not deployed yet), the submission itself
+                // still succeeds; we just log it rather than blocking the author.
+                try {
+                    await withTimeout(db.functions.invoke('notify-submission', { body: { record: inserted } }), 10000);
+                } catch (notifyErr) {
+                    console.warn('Submission saved, but admin notification email failed:', notifyErr.message);
+                }
 
                 showToast('Thank you! Your submission has been received.', 'success');
                 e.target.reset();
