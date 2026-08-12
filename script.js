@@ -25,9 +25,9 @@
         // no interception needed here anymore.
 
         // ─── INIT ────────────────────────────────────────────
-        function init() {
+        async function init() {
             try {
-                initSupabase();
+                await initSupabaseWithRetry();
                 console.log('✅ Supabase initialized');
 
                 refreshAllData();
@@ -44,7 +44,7 @@
                 console.log('✅ Site ready!');
             } catch (e) {
                 console.error('❌ Init error:', e);
-                showToast('Error loading site', 'error');
+                showPersistentError('⚠️ ' + (e.message || 'Could not connect to the server. Please refresh the page.'));
             }
         }
 
@@ -386,6 +386,12 @@
             if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
 
             try {
+                if (!db) {
+                    // Self-heal: try once more before giving up, in case the page
+                    // is still finishing its initial connection to the server.
+                    await initSupabaseWithRetry(8, 250);
+                }
+
                 const abstractField = document.getElementById(isFullForm ? 'subAbstractFull' : 'subAbstract');
                 const abstractWords = abstractField.value.trim().split(/\s+/).filter(Boolean).length;
                 if (abstractWords > 250) {
