@@ -46,7 +46,7 @@
                 <a href="https://www.kasu.edu.ng" target="_blank" rel="noopener" id="kasuMainLink">KASU Main Site</a>
                 <a href="https://www.kasu.edu.ng/library" target="_blank" rel="noopener" id="eLibraryLink">E-Library</a>
                 <a href="mailto:sociology@kasu.edu.ng" id="contactLink">Contact</a>
-            
+                <a id="adminLink" href="admin.html" style="color: var(--kasu-gold); font-weight: 600;">Admin</a>
             </div>
         </div>
     </div>
@@ -244,8 +244,6 @@
                                 <strong>Dr. Jafar Abdurkadir</strong><br>
                                 Head of Department<br>
                                 Community Development and Gender Studies expertise<br>
-                                <!-- TODO: verify this email — "abdul.jaafar" doesn't match the name
-                                     "Jafar Abdurkadir" above. Confirm the correct address and update. -->
                                 Email: abdul.jaafar@kasu.edu.ng<br>
                                 Office: Department of Sociology<br>
                             </div>
@@ -292,7 +290,7 @@
             </div>
         </section>
 
-        <!-- SUBMIT SECTION -->
+        <!-- SUBMIT SECTION (homepage teaser — links to the full Submit page, which now handles login/account) -->
         <section class="section-padding section-dark" id="submit-section">
             <div class="container-custom">
                 <div class="submit-grid">
@@ -300,7 +298,7 @@
                         <div class="section-header">
                             <span class="section-eyebrow" style="color:var(--kasu-gold);">For Researchers</span>
                             <h2 style="color:#fff;">Submit Your Research</h2>
-                            <p>We welcome original research from Nigerian and international scholars.</p>
+                            <p>We welcome original research from Nigerian and international scholars. Create a free account to submit your manuscript and track its review status.</p>
                         </div>
                         <div id="quickDeadlineBanner" style="background:rgba(200,148,26,0.15);border:1px solid rgba(200,148,26,0.4);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;font-size:13.5px;color:#fff;display:none;"></div>
                         <ol class="steps-list">
@@ -316,57 +314,11 @@
                             <li>Submit by <span id="quickDeadlineText">the deadline shown above</span> to <span id="quickEmailText">the editorial office</span></li>
                         </ol>
                     </div>
-                    <div class="submit-card">
-                        <h4>Quick Submission Form</h4>
-                        <form id="submissionForm" onsubmit="submitPaper(event)">
-                            <div class="form-row">
-                                <label>Author Name(s)</label>
-                                <input type="text" id="subAuthor" placeholder="Dr. Jane Doe; Prof. John Musa" required>
-                            </div>
-                            <div class="form-row">
-                                <label>Email Address</label>
-                                <input type="email" id="subEmail" placeholder="author@institution.edu.ng" required>
-                            </div>
-                            <div class="form-row">
-                                <label>Manuscript Title</label>
-                                <input type="text" id="subTitle" placeholder="Full title of your paper" required>
-                            </div>
-                            <div class="form-row">
-                                <label>Research Area</label>
-                                <select id="subArea">
-                                    <option>Urban Sociology</option>
-                                    <option>Gender & Society</option>
-                                    <option>Political Sociology</option>
-                                    <option>Health Sociology</option>
-                                    <option>Environmental Sociology</option>
-                                    <option>Rural Development</option>
-                                    <option>Criminology</option>
-                                </select>
-                            </div>
-                            <div class="form-row">
-                                <label>Abstract (max 250 words)</label>
-                                <textarea id="subAbstract" placeholder="Paste your abstract here…" rows="3" required oninput="updateWordCount('subAbstract','quickAbstractCount',250)"></textarea>
-                                <span id="quickAbstractCount" style="font-size:11px;color:rgba(255,255,255,0.5);">0/250 words</span>
-                            </div>
-                            <div class="form-row">
-                                <label>Keywords (exactly 5, comma separated)</label>
-                                <input type="text" id="subKeywords" placeholder="e.g. urbanisation, poverty, youth, policy, Kaduna">
-                            </div>
-                            <div class="form-row">
-                                <label>AI Tool Usage Disclosure</label>
-                                <textarea id="subAiTools" placeholder="Describe any AI tools used in preparing this manuscript, or write 'None'." rows="2"></textarea>
-                            </div>
-                            <div class="form-row">
-                                <label>Manuscript File (PDF or Word, max 20MB) — remove author details for blind review</label>
-                                <div id="quickManuscriptUploadContainer" style="color:#767676;font-size:13px;padding:0.75rem;border:1px dashed #D8D8D8;border-radius:6px;">Loading upload control…</div>
-                                <input type="hidden" id="subManuscriptPath">
-                                <input type="hidden" id="subManuscriptName">
-                            </div>
-                            <div style="margin-top: 1.25rem; display:flex; gap: 1rem; flex-wrap:wrap;">
-                                <button type="submit" class="btn-primary" id="quickSubmitBtn" style="flex:1; text-align:center;">Submit →</button>
-                                <button type="button" class="btn-outline" id="quickEmailBtn" style="flex:1; text-align:center;">Email</button>
-                            </div>
-                        </form>
+                    <div class="submit-card" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:1rem;">
+                        <h4>Ready to Submit?</h4>
+                        <p style="font-size:14px;color:rgba(255,255,255,0.75);">Manuscript submissions now require a free author account, so you can track review status and receive updates in one place.</p>
+                        <button class="btn-primary" style="width:100%;" onclick="showPage('submit')">Go to Submission Portal →</button>
+                        <button class="btn-outline" id="quickEmailBtn" style="width:100%;">Email Us Instead</button>
                     </div>
                 </div>
             </div>
@@ -450,12 +402,12 @@
         </section>
     </div>
 
-    <!-- ═══════════ PAGE: SUBMIT ═══════════ -->
+    <!-- ═══════════ PAGE: SUBMIT (now account-gated) ═══════════ -->
     <div id="page-submit" class="page-content">
         <div class="hero" style="padding:3rem 2rem;">
             <div class="container-custom">
                 <h1 style="color:white;font-family:'Playfair Display',serif;font-size:2.5rem;">Submit Your Research</h1>
-                <p style="color:rgba(255,255,255,0.7);font-size:1.1rem;max-width:600px;">Share your work with the academic community.</p>
+                <p style="color:rgba(255,255,255,0.7);font-size:1.1rem;max-width:600px;">Log in or create a free account to submit your manuscript and track its status.</p>
             </div>
         </div>
         <section class="section-padding section-alt">
@@ -478,54 +430,103 @@
                     </ol>
                 </div>
 
-                <div style="background:white;border-radius:12px;padding:2rem;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
-                    <h2 style="font-family:'Playfair Display',serif;font-size:1.8rem;margin-bottom:1.5rem;">Manuscript Submission</h2>
-                    <form id="submissionFormFull" onsubmit="submitPaper(event)">
+                <!-- ─── AUTH GATE: shown when nobody is logged in ─── -->
+                <div id="authGateContainer" style="background:white;border-radius:12px;padding:2rem;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
+                    <div style="display:flex;gap:0;margin-bottom:1.5rem;border-bottom:2px solid var(--border);">
+                        <button type="button" id="authTabLoginBtn" onclick="switchAuthTab('login')" style="flex:1;padding:0.75rem;border:none;background:none;cursor:pointer;font-weight:600;font-size:15px;border-bottom:2px solid var(--kasu-green);margin-bottom:-2px;color:var(--kasu-green);">Log In</button>
+                        <button type="button" id="authTabRegisterBtn" onclick="switchAuthTab('register')" style="flex:1;padding:0.75rem;border:none;background:none;cursor:pointer;font-weight:600;font-size:15px;color:var(--text-muted);">Create Account</button>
+                    </div>
+
+                    <form id="authLoginForm" onsubmit="authLogin(event)">
                         <div class="form-group" style="margin-bottom:1rem;">
-                            <label style="display:block;font-weight:500;margin-bottom:4px;">Author Name(s) *</label>
-                            <input type="text" id="subAuthorFull" required style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;">
+                            <label style="display:block;font-weight:500;margin-bottom:4px;">Email</label>
+                            <input type="email" id="loginEmail" required style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;">
                         </div>
                         <div class="form-group" style="margin-bottom:1rem;">
-                            <label style="display:block;font-weight:500;margin-bottom:4px;">Email *</label>
-                            <input type="email" id="subEmailFull" required style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;">
+                            <label style="display:block;font-weight:500;margin-bottom:4px;">Password</label>
+                            <input type="password" id="loginPassword" required style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;">
                         </div>
-                        <div class="form-group" style="margin-bottom:1rem;">
-                            <label style="display:block;font-weight:500;margin-bottom:4px;">Title *</label>
-                            <input type="text" id="subTitleFull" required style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;">
-                        </div>
-                        <div class="form-group" style="margin-bottom:1rem;">
-                            <label style="display:block;font-weight:500;margin-bottom:4px;">Research Area</label>
-                            <select id="subAreaFull" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;">
-                                <option>Urban Sociology</option>
-                                <option>Gender & Society</option>
-                                <option>Political Sociology</option>
-                                <option>Health Sociology</option>
-                                <option>Environmental Sociology</option>
-                                <option>Rural Development</option>
-                                <option>Criminology</option>
-                            </select>
-                        </div>
-                        <div class="form-group" style="margin-bottom:1rem;">
-                            <label style="display:block;font-weight:500;margin-bottom:4px;">Abstract * (max 250 words)</label>
-                            <textarea id="subAbstractFull" rows="4" required style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;resize:vertical;" oninput="updateWordCount('subAbstractFull','fullAbstractCount',250)"></textarea>
-                            <span id="fullAbstractCount" style="font-size:11px;color:var(--text-muted);">0/250 words</span>
-                        </div>
-                        <div class="form-group" style="margin-bottom:1rem;">
-                            <label style="display:block;font-weight:500;margin-bottom:4px;">Keywords (exactly 5, comma separated) *</label>
-                            <input type="text" id="subKeywordsFull" required placeholder="e.g. urbanisation, poverty, youth, policy, Kaduna" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;">
-                        </div>
-                        <div class="form-group" style="margin-bottom:1rem;">
-                            <label style="display:block;font-weight:500;margin-bottom:4px;">AI Tool Usage Disclosure</label>
-                            <textarea id="subAiToolsFull" rows="2" placeholder="Describe any AI tools used in preparing this manuscript, or write 'None'." style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;resize:vertical;"></textarea>
-                        </div>
-                        <div class="form-group" style="margin-bottom:1rem;">
-                            <label style="display:block;font-weight:500;margin-bottom:4px;">Manuscript File (PDF or Word, max 20MB) — remove author details for blind review</label>
-                            <div id="fullManuscriptUploadContainer" style="color:#767676;font-size:13px;padding:0.75rem;border:1px dashed #D8D8D8;border-radius:6px;">Loading upload control…</div>
-                            <input type="hidden" id="subManuscriptPathFull">
-                            <input type="hidden" id="subManuscriptNameFull">
-                        </div>
-                        <button type="submit" class="btn-primary" id="fullSubmitBtn" style="width:100%;text-align:center;">Submit →</button>
+                        <div id="authLoginError" style="color:#dc2626;font-size:14px;margin-bottom:1rem;display:none;"></div>
+                        <button type="submit" class="btn-primary" style="width:100%;">Log In</button>
                     </form>
+
+                    <form id="authRegisterForm" onsubmit="authRegister(event)" style="display:none;">
+                        <div class="form-group" style="margin-bottom:1rem;">
+                            <label style="display:block;font-weight:500;margin-bottom:4px;">Full Name</label>
+                            <input type="text" id="registerName" required style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;">
+                        </div>
+                        <div class="form-group" style="margin-bottom:1rem;">
+                            <label style="display:block;font-weight:500;margin-bottom:4px;">Email</label>
+                            <input type="email" id="registerEmail" required style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;">
+                        </div>
+                        <div class="form-group" style="margin-bottom:1rem;">
+                            <label style="display:block;font-weight:500;margin-bottom:4px;">Password (min. 6 characters)</label>
+                            <input type="password" id="registerPassword" minlength="6" required style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;">
+                        </div>
+                        <div id="authRegisterError" style="color:#dc2626;font-size:14px;margin-bottom:1rem;display:none;"></div>
+                        <div id="authRegisterSuccess" style="color:#16a34a;font-size:14px;margin-bottom:1rem;display:none;"></div>
+                        <button type="submit" class="btn-primary" style="width:100%;">Create Account</button>
+                    </form>
+                </div>
+
+                <!-- ─── AUTHENTICATED AREA: shown once logged in ─── -->
+                <div id="authedSubmitContainer" style="display:none;">
+
+                    <div style="background:white;border-radius:12px;padding:1.25rem 2rem;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:1.5rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;">
+                        <span style="font-size:14px;color:var(--text-secondary);">Logged in as <strong id="authedUserEmail"></strong></span>
+                        <button type="button" class="btn-outline-dark" onclick="authLogout()" style="padding:6px 16px;font-size:13px;">Log Out</button>
+                    </div>
+
+                    <div style="background:white;border-radius:12px;padding:2rem;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:1.5rem;">
+                        <h2 style="font-family:'Playfair Display',serif;font-size:1.4rem;margin-bottom:1rem;">My Submissions</h2>
+                        <div id="mySubmissionsList"><div class="loading"><div class="loading-spinner"></div>Loading...</div></div>
+                    </div>
+
+                    <div style="background:white;border-radius:12px;padding:2rem;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
+                        <h2 style="font-family:'Playfair Display',serif;font-size:1.8rem;margin-bottom:1.5rem;">New Manuscript Submission</h2>
+                        <form id="submissionFormFull" onsubmit="submitPaper(event)">
+                            <div class="form-group" style="margin-bottom:1rem;">
+                                <label style="display:block;font-weight:500;margin-bottom:4px;">Author Name(s) *</label>
+                                <input type="text" id="subAuthorFull" required style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;">
+                            </div>
+                            <div class="form-group" style="margin-bottom:1rem;">
+                                <label style="display:block;font-weight:500;margin-bottom:4px;">Title *</label>
+                                <input type="text" id="subTitleFull" required style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;">
+                            </div>
+                            <div class="form-group" style="margin-bottom:1rem;">
+                                <label style="display:block;font-weight:500;margin-bottom:4px;">Research Area</label>
+                                <select id="subAreaFull" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;">
+                                    <option>Urban Sociology</option>
+                                    <option>Gender & Society</option>
+                                    <option>Political Sociology</option>
+                                    <option>Health Sociology</option>
+                                    <option>Environmental Sociology</option>
+                                    <option>Rural Development</option>
+                                    <option>Criminology</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-bottom:1rem;">
+                                <label style="display:block;font-weight:500;margin-bottom:4px;">Abstract * (max 250 words)</label>
+                                <textarea id="subAbstractFull" rows="4" required style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;resize:vertical;" oninput="updateWordCount('subAbstractFull','fullAbstractCount',250)"></textarea>
+                                <span id="fullAbstractCount" style="font-size:11px;color:var(--text-muted);">0/250 words</span>
+                            </div>
+                            <div class="form-group" style="margin-bottom:1rem;">
+                                <label style="display:block;font-weight:500;margin-bottom:4px;">Keywords (exactly 5, comma separated) *</label>
+                                <input type="text" id="subKeywordsFull" required placeholder="e.g. urbanisation, poverty, youth, policy, Kaduna" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;">
+                            </div>
+                            <div class="form-group" style="margin-bottom:1rem;">
+                                <label style="display:block;font-weight:500;margin-bottom:4px;">AI Tool Usage Disclosure</label>
+                                <textarea id="subAiToolsFull" rows="2" placeholder="Describe any AI tools used in preparing this manuscript, or write 'None'." style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;resize:vertical;"></textarea>
+                            </div>
+                            <div class="form-group" style="margin-bottom:1rem;">
+                                <label style="display:block;font-weight:500;margin-bottom:4px;">Manuscript File (PDF or Word, max 20MB) — remove author details for blind review</label>
+                                <div id="fullManuscriptUploadContainer" style="color:#767676;font-size:13px;padding:0.75rem;border:1px dashed #D8D8D8;border-radius:6px;">Loading upload control…</div>
+                                <input type="hidden" id="subManuscriptPathFull">
+                                <input type="hidden" id="subManuscriptNameFull">
+                            </div>
+                            <button type="submit" class="btn-primary" id="fullSubmitBtn" style="width:100%;text-align:center;">Submit →</button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </section>
