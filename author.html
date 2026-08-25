@@ -3,111 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Author Dashboard — Department of Sociology, KASU</title>
+    <title>Author Portal — Department of Sociology, KASU</title>
     <meta name="robots" content="noindex, nofollow">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="style.css">
     <style>
-        /* Author Dashboard Specific Styles */
-        .author-layout {
-            display: flex;
-            min-height: 100vh;
+        /* ── RESET ── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --kasu-green: #1A4731;
+            --kasu-gold: #C8941A;
+            --kasu-green-light: #E8F2EC;
+            --text-primary: #1A1A1A;
+            --text-secondary: #4A4A4A;
+            --text-muted: #767676;
+            --border: #D8D8D8;
+            --bg-white: #FFFFFF;
+            --bg-cream: #FAFAF7;
         }
-        .author-sidebar {
-            width: 250px;
+        body { font-family: 'Inter', sans-serif; color: var(--text-primary); background: var(--bg-white); line-height: 1.7; }
+        a { text-decoration: none; color: inherit; cursor: pointer; }
+        button { cursor: pointer; border: none; background: none; }
+        .container-custom { max-width: 1200px; margin: 0 auto; padding: 0 2rem; }
+
+        /* ── TOP BAR ── */
+        .top-bar {
             background: var(--kasu-green);
-            color: white;
-            padding: 1.5rem 0;
-            flex-shrink: 0;
-            position: sticky;
-            top: 0;
-            height: 100vh;
-            overflow-y: auto;
-        }
-        .author-sidebar .logo {
-            padding: 0 1.5rem 1.5rem;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            font-family: 'Playfair Display', serif;
-            font-size: 1.2rem;
-            font-weight: 700;
-            margin-bottom: 1.5rem;
-        }
-        .author-sidebar .logo span { color: var(--kasu-gold); }
-        .author-sidebar nav a {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 10px 1.5rem;
-            color: rgba(255,255,255,0.7);
-            transition: all 0.2s;
-            cursor: pointer;
-            font-size: 14px;
-            border: none;
-            background: none;
-            width: 100%;
-            text-align: left;
-        }
-        .author-sidebar nav a:hover,
-        .author-sidebar nav a.active {
-            background: rgba(255,255,255,0.1);
-            color: white;
-        }
-        .author-sidebar .logout-btn {
-            margin-top: 2rem;
-            padding: 10px 1.5rem;
-            border-top: 1px solid rgba(255,255,255,0.1);
-            color: rgba(255,255,255,0.6);
-            cursor: pointer;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            background: none;
-            border: none;
-            width: 100%;
-            text-align: left;
-        }
-        .author-sidebar .logout-btn:hover { color: white; }
-        .author-content { flex: 1; padding: 2rem; background: #f5f5f5; overflow: auto; }
-
-        .submission-card {
-            background: white;
-            border-radius: 10px;
-            padding: 1.5rem;
-            margin-bottom: 1rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-            border-left: 4px solid var(--kasu-gold);
-        }
-        .submission-card .status {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 100px;
+            color: rgba(255,255,255,0.8);
             font-size: 12px;
+            padding: 6px 0;
+        }
+        .top-bar .inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+        .top-bar a { color: rgba(255,255,255,0.8); text-decoration: none; }
+        .top-bar a:hover { color: var(--kasu-gold); }
+        .top-bar .links { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+
+        .btn-primary {
+            background: var(--kasu-gold);
+            color: var(--kasu-green);
             font-weight: 600;
+            font-size: 14px;
+            padding: 12px 24px;
+            border-radius: 6px;
+            transition: all 0.2s;
+            display: inline-block;
+            border: none;
+            cursor: pointer;
+            text-align: center;
         }
-        .status-pending { background: #FFF3E0; color: #E65100; }
-        .status-under_review { background: #E3F2FD; color: #0D47A1; }
-        .status-revisions_required { background: #FFF8E1; color: #F57F17; }
-        .status-accepted { background: #E8F5E9; color: #1B5E20; }
-        .status-rejected { background: #FFEBEE; color: #B71C1C; }
-
-        .submission-meta {
-            font-size: 13px;
-            color: var(--text-muted);
-            margin: 0.5rem 0;
+        .btn-primary:hover { background: #E0A420; transform: translateY(-1px); }
+        .btn-outline-dark {
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 14px; font-weight: 500;
+            padding: 12px 24px;
+            border-radius: 6px;
+            transition: all 0.2s;
+            display: inline-block;
+            background: transparent;
+            cursor: pointer;
+            text-align: center;
         }
-        .submission-meta strong { color: var(--text-secondary); }
+        .btn-outline-dark:hover { background: var(--bg-cream); }
 
-        @media (max-width: 768px) {
-            .author-sidebar { width: 100%; height: auto; position: relative; }
-            .author-layout { flex-direction: column; }
-            .author-content { padding: 1rem; }
+        /* ── TOAST ── */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            border-radius: 8px;
+            color: white;
+            z-index: 9999;
+            animation: slideIn 0.3s ease;
+            max-width: 400px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            display: none;
+        }
+        .toast-success { background: #22c55e; }
+        .toast-error { background: #ef4444; }
+        .toast-info { background: #3b82f6; }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
 
-        /* Registration/Login forms */
+        /* ── AUTH ── */
         .auth-container {
             min-height: 80vh;
             display: flex;
@@ -168,6 +160,201 @@
             cursor: pointer;
         }
         .auth-box .auth-link a:hover { text-decoration: underline; }
+
+        /* ── DASHBOARD ── */
+        .author-layout { display: flex; min-height: 100vh; }
+        .author-sidebar {
+            width: 250px;
+            background: var(--kasu-green);
+            color: white;
+            padding: 1.5rem 0;
+            flex-shrink: 0;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+        }
+        .author-sidebar .logo {
+            padding: 0 1.5rem 1.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            font-family: 'Playfair Display', serif;
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+        }
+        .author-sidebar .logo span { color: var(--kasu-gold); }
+        .author-sidebar nav a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 1.5rem;
+            color: rgba(255,255,255,0.7);
+            transition: all 0.2s;
+            cursor: pointer;
+            font-size: 14px;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+        }
+        .author-sidebar nav a:hover,
+        .author-sidebar nav a.active {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+        .author-sidebar .logout-btn {
+            margin-top: 2rem;
+            padding: 10px 1.5rem;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.6);
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: none;
+            border: none;
+            width: 100%;
+            text-align: left;
+        }
+        .author-sidebar .logout-btn:hover { color: white; }
+        .author-content { flex: 1; padding: 2rem; background: #f5f5f5; overflow: auto; }
+
+        .admin-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .admin-stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .admin-stat-card h3 {
+            font-size: 14px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+        .admin-stat-card .number {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--kasu-green);
+        }
+
+        .admin-form {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            max-width: 600px;
+        }
+        .admin-form .form-group { margin-bottom: 1rem; }
+        .admin-form label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+        .admin-form input,
+        .admin-form textarea,
+        .admin-form select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+        }
+        .admin-form textarea { min-height: 100px; resize: vertical; }
+        .admin-form .form-actions { display: flex; gap: 1rem; margin-top: 1.5rem; flex-wrap: wrap; }
+
+        .submission-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border-left: 4px solid var(--kasu-gold);
+        }
+        .submission-card .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 100px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status-pending { background: #FFF3E0; color: #E65100; }
+        .status-under_review { background: #E3F2FD; color: #0D47A1; }
+        .status-revisions_required { background: #FFF8E1; color: #F57F17; }
+        .status-accepted { background: #E8F5E9; color: #1B5E20; }
+        .status-rejected { background: #FFEBEE; color: #B71C1C; }
+        .submission-meta {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin: 0.5rem 0;
+        }
+        .submission-meta strong { color: var(--text-secondary); }
+
+        .file-upload-wrapper {
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+            background: var(--bg-cream);
+            transition: border-color 0.3s;
+        }
+        .file-upload-wrapper:hover { border-color: var(--kasu-gold); }
+        .file-upload-area { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        .file-preview {
+            margin-top: 8px;
+            padding: 8px;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            max-width: 100%;
+        }
+        .progress-container { display: none; width: 100%; margin-top: 8px; }
+        .progress-bar { background: #f0f0f0; border-radius: 4px; height: 6px; overflow: hidden; }
+        .progress-fill { background: var(--kasu-gold); height: 100%; width: 0%; transition: width 0.3s; }
+        .progress-text { font-size: 12px; color: var(--text-muted); }
+        .upload-status { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-muted);
+        }
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--kasu-gold);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .page-content { display: none; }
+        .page-content.active { display: block; }
+
+        @media (max-width: 768px) {
+            .author-sidebar { width: 100%; height: auto; position: relative; }
+            .author-layout { flex-direction: column; }
+            .author-content { padding: 1rem; }
+            .admin-stats { grid-template-columns: 1fr 1fr; }
+            .admin-form { max-width: 100%; }
+            .top-bar .inner { flex-direction: column; align-items: center; }
+            .top-bar .links { justify-content: center; }
+        }
+        @media (max-width: 480px) {
+            .admin-stats { grid-template-columns: 1fr; }
+            .auth-box { padding: 1.5rem; }
+        }
     </style>
 </head>
 <body>
@@ -370,7 +557,7 @@
 
     <!-- ═══════════ JAVASCRIPT ═══════════ -->
     <script>
-        // ─── SUPABASE CONFIG ──────────────────────────────
+        // ═══ SUPABASE CREDENTIALS ═══
         const SUPABASE_URL = 'https://xonqebmlxlbvvhvmhhxv.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhvbnFlYm1seGxidnZodm1oaHh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMzczMTEsImV4cCI6MjEwMTYxMzMxMX0.8txFv3_7FH0XGbfXSy8A17t9xsPoGD-kCkZBARhyXQc';
 
@@ -384,7 +571,6 @@
                 db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
                 console.log('✅ Supabase initialized');
 
-                // Check if user is already logged in
                 const { data } = await db.auth.getSession();
                 if (data.session) {
                     currentUser = data.session.user;
@@ -395,7 +581,6 @@
                     showAuthView();
                 }
 
-                // Initialize file upload for author submissions
                 initAuthorFileUpload();
 
             } catch (e) {
@@ -404,7 +589,7 @@
             }
         }
 
-        // ─── AUTH VIEWS ────────────────────────────────────
+        // ─── VIEWS ────────────────────────────────────────
         function showAuthView() {
             document.getElementById('authView').style.display = 'block';
             document.getElementById('dashboardView').style.display = 'none';
@@ -429,7 +614,7 @@
             document.getElementById('authorRegisterError').style.display = 'none';
         }
 
-        // ─── AUTH: REGISTER ────────────────────────────────
+        // ─── AUTH ──────────────────────────────────────────
         async function authorRegister(e) {
             e.preventDefault();
             const name = document.getElementById('regName').value;
@@ -454,7 +639,6 @@
                 });
                 if (error) throw error;
 
-                // Create profile
                 await db.from('profiles').insert({
                     id: data.user.id,
                     email: email,
@@ -475,7 +659,6 @@
             }
         }
 
-        // ─── AUTH: LOGIN ────────────────────────────────────
         async function authorLogin(e) {
             e.preventDefault();
             const email = document.getElementById('authorEmail').value;
@@ -500,7 +683,6 @@
             }
         }
 
-        // ─── AUTH: LOGOUT ───────────────────────────────────
         async function authorLogout() {
             await db.auth.signOut();
             currentUser = null;
@@ -508,7 +690,7 @@
             showAuthView();
         }
 
-        // ─── LOAD AUTHOR PROFILE ──────────────────────────
+        // ─── PROFILE ──────────────────────────────────────
         async function loadAuthorProfile() {
             if (!currentUser) return;
             try {
@@ -520,10 +702,7 @@
 
                 if (error) throw error;
 
-                // Update dashboard with name
                 document.getElementById('authorName').textContent = data.name || 'Author';
-
-                // Profile form
                 document.getElementById('apName').value = data.name || '';
                 document.getElementById('apEmail').value = data.email || '';
                 document.getElementById('apAffiliation').value = data.affiliation || '';
@@ -535,20 +714,20 @@
             }
         }
 
-        // ─── AUTHOR PAGE NAVIGATION ──────────────────────
+        // ─── NAVIGATION ──────────────────────────────────
         function showAuthorPage(page) {
             document.querySelectorAll('.author-content > div').forEach(el => el.style.display = 'none');
-            const target = document.getElementById(`author-${page}`);
+            const target = document.getElementById('author-' + page);
             if (target) target.style.display = 'block';
             document.querySelectorAll('.author-sidebar nav a').forEach(a => a.classList.remove('active'));
-            const link = document.querySelector(`.author-sidebar nav a[data-page="${page}"]`);
+            const link = document.querySelector('.author-sidebar nav a[data-page="' + page + '"]');
             if (link) link.classList.add('active');
 
             if (page === 'dashboard') loadAuthorDashboard();
             if (page === 'submissions') loadAuthorSubmissions();
         }
 
-        // ─── AUTHOR DASHBOARD ─────────────────────────────
+        // ─── DASHBOARD ──────────────────────────────────
         async function loadAuthorDashboard() {
             if (!currentUser) return;
             try {
@@ -561,9 +740,9 @@
 
                 const submissions = data || [];
                 const total = submissions.length;
-                const underReview = submissions.filter(s => s.status === 'under_review').length;
-                const revisions = submissions.filter(s => s.status === 'revisions_required').length;
-                const accepted = submissions.filter(s => s.status === 'accepted').length;
+                const underReview = submissions.filter(function(s) { return s.status === 'under_review'; }).length;
+                const revisions = submissions.filter(function(s) { return s.status === 'revisions_required'; }).length;
+                const accepted = submissions.filter(function(s) { return s.status === 'accepted'; }).length;
 
                 document.getElementById('statTotal').textContent = total;
                 document.getElementById('statUnderReview').textContent = underReview;
@@ -577,7 +756,7 @@
             }
         }
 
-        // ─── AUTHOR SUBMISSIONS ──────────────────────────
+        // ─── SUBMISSIONS ──────────────────────────────────
         async function loadAuthorSubmissions() {
             if (!currentUser) return;
             try {
@@ -591,17 +770,11 @@
 
                 const container = document.getElementById('submissionsList');
                 if (!data || data.length === 0) {
-                    container.innerHTML = `
-                        <div style="text-align:center;padding:3rem;color:var(--text-muted);">
-                            <p style="font-size:1.2rem;margin-bottom:0.5rem;">📝 No submissions yet</p>
-                            <p>Click "New Submission" to submit your first paper.</p>
-                            <button class="btn-primary" onclick="showAuthorPage('submit')" style="margin-top:1rem;">Submit Now →</button>
-                        </div>
-                    `;
+                    container.innerHTML = '<div style="text-align:center;padding:3rem;color:var(--text-muted);"><p style="font-size:1.2rem;margin-bottom:0.5rem;">📝 No submissions yet</p><p>Click "New Submission" to submit your first paper.</p><button class="btn-primary" onclick="showAuthorPage(\'submit\')" style="margin-top:1rem;">Submit Now →</button></div>';
                     return;
                 }
 
-                const statusLabels = {
+                var statusLabels = {
                     'pending': 'Pending Review',
                     'under_review': 'Under Review',
                     'revisions_required': 'Revisions Required',
@@ -609,22 +782,9 @@
                     'rejected': 'Rejected'
                 };
 
-                container.innerHTML = data.map(s => `
-                    <div class="submission-card">
-                        <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:0.5rem;">
-                            <h3 style="font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--text-primary);">${s.title}</h3>
-                            <span class="status status-${s.status}">${statusLabels[s.status] || s.status}</span>
-                        </div>
-                        <div class="submission-meta">
-                            <strong>Submitted:</strong> ${new Date(s.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-                        </div>
-                        <div class="submission-meta">
-                            <strong>Research Area:</strong> ${s.research_area || '—'}
-                        </div>
-                        ${s.abstract ? `<div class="submission-meta"><strong>Abstract:</strong> ${s.abstract.substring(0, 150)}${s.abstract.length > 150 ? '...' : ''}</div>` : ''}
-                        ${s.manuscript_path ? `<div class="submission-meta"><strong>File:</strong> ${s.manuscript_filename || 'Uploaded'}</div>` : ''}
-                    </div>
-                `).join('');
+                container.innerHTML = data.map(function(s) {
+                    return '<div class="submission-card"><div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:0.5rem;"><h3 style="font-family:\'Playfair Display\',serif;font-size:1.1rem;color:var(--text-primary);">' + s.title + '</h3><span class="status status-' + s.status + '">' + (statusLabels[s.status] || s.status) + '</span></div><div class="submission-meta"><strong>Submitted:</strong> ' + new Date(s.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) + '</div><div class="submission-meta"><strong>Research Area:</strong> ' + (s.research_area || '—') + '</div>' + (s.abstract ? '<div class="submission-meta"><strong>Abstract:</strong> ' + s.abstract.substring(0, 150) + (s.abstract.length > 150 ? '...' : '') + '</div>' : '') + (s.manuscript_path ? '<div class="submission-meta"><strong>File:</strong> ' + (s.manuscript_filename || 'Uploaded') + '</div>' : '') + '</div>';
+                }).join('');
 
             } catch (e) {
                 console.error('Error loading submissions:', e);
@@ -632,7 +792,7 @@
             }
         }
 
-        // ─── AUTHOR SUBMIT PAPER ─────────────────────────
+        // ─── SUBMIT PAPER ──────────────────────────────────
         async function authorSubmitPaper(e) {
             e.preventDefault();
             if (!currentUser) {
@@ -640,34 +800,35 @@
                 return;
             }
 
-            const btn = e.target.querySelector('button[type="submit"]');
-            const originalText = btn.textContent;
+            var btn = e.target.querySelector('button[type="submit"]');
+            var originalText = btn.textContent;
             btn.disabled = true;
             btn.textContent = 'Submitting…';
 
             try {
-                const title = document.getElementById('asTitle').value;
-                const research_area = document.getElementById('asArea').value;
-                const abstract = document.getElementById('asAbstract').value;
-                const keywords = document.getElementById('asKeywords').value;
-                const ai_tools_disclosure = document.getElementById('asAiTools').value || 'None';
-                const manuscript_path = document.getElementById('asManuscriptPath').value || null;
-                const manuscript_filename = document.getElementById('asManuscriptName').value || null;
+                var title = document.getElementById('asTitle').value;
+                var research_area = document.getElementById('asArea').value;
+                var abstract = document.getElementById('asAbstract').value;
+                var keywords = document.getElementById('asKeywords').value;
+                var ai_tools_disclosure = document.getElementById('asAiTools').value || 'None';
+                var manuscript_path = document.getElementById('asManuscriptPath').value || null;
+                var manuscript_filename = document.getElementById('asManuscriptName').value || null;
 
-                // Validate abstract word count
-                const wordCount = abstract.trim().split(/\s+/).filter(Boolean).length;
+                var wordCount = abstract.trim().split(/\s+/).filter(function(w) { return w; }).length;
                 if (wordCount > 250) {
-                    showToast(`Abstract is ${wordCount} words — please shorten to 250 words or fewer.`, 'error');
+                    showToast('Abstract is ' + wordCount + ' words — please shorten to 250 words or fewer.', 'error');
                     btn.disabled = false;
                     btn.textContent = originalText;
                     return;
                 }
 
-                const { data, error } = await db
+                var profileName = document.getElementById('apName') ? document.getElementById('apName').value : currentUser.email;
+
+                var { data, error } = await db
                     .from('submissions')
                     .insert({
                         author_id: currentUser.id,
-                        author_name: document.getElementById('apName')?.value || currentUser.email,
+                        author_name: profileName,
                         email: currentUser.email,
                         title: title,
                         research_area: research_area,
@@ -687,9 +848,6 @@
                 e.target.reset();
                 document.getElementById('asManuscriptPath').value = '';
                 document.getElementById('asManuscriptName').value = '';
-                // Reset upload status
-                document.querySelector('#authorManuscriptUploadContainer .upload-status')?.remove();
-                document.querySelector('#authorManuscriptUploadContainer .file-preview')?.innerHTML = '';
 
                 showAuthorPage('submissions');
                 loadAuthorSubmissions();
@@ -704,13 +862,13 @@
             }
         }
 
-        // ─── AUTHOR UPDATE PROFILE ──────────────────────
+        // ─── UPDATE PROFILE ──────────────────────────────
         async function authorUpdateProfile(e) {
             e.preventDefault();
             if (!currentUser) return;
 
             try {
-                const { error } = await db
+                var { error } = await db
                     .from('profiles')
                     .update({
                         name: document.getElementById('apName').value,
@@ -731,78 +889,57 @@
             }
         }
 
-        // ─── FILE UPLOAD FOR AUTHOR ──────────────────────
+        // ─── FILE UPLOAD ──────────────────────────────────
         function initAuthorFileUpload() {
-            const container = document.getElementById('authorManuscriptUploadContainer');
+            var container = document.getElementById('authorManuscriptUploadContainer');
             if (!container) return;
 
-            class FileUpload {
-                constructor(options = {}) {
-                    this.bucket = options.bucket || 'manuscripts';
-                    this.accept = options.accept || '.pdf,.doc,.docx';
-                    this.label = options.label || 'Upload Manuscript';
-                    this.onUpload = options.onUpload || (() => {});
-                    this.maxSize = options.maxSize || 20 * 1024 * 1024;
-                    this.containerId = options.containerId || 'authorManuscriptUpload';
-                    this.isPrivate = true;
-                }
+            var FileUpload = function(options) {
+                this.bucket = options.bucket || 'manuscripts';
+                this.accept = options.accept || '.pdf,.doc,.docx';
+                this.label = options.label || 'Upload Manuscript';
+                this.onUpload = options.onUpload || function() {};
+                this.maxSize = options.maxSize || 20 * 1024 * 1024;
+                this.containerId = options.containerId || 'authorManuscriptUpload';
+                this.isPrivate = true;
+            };
 
-                render() {
-                    return `
-                        <div class="file-upload-wrapper">
-                            <div class="file-upload-area">
-                                <input type="file" 
-                                       id="${this.containerId}_input" 
-                                       accept="${this.accept}" 
-                                       style="display:none;" />
-                                <button type="button" 
-                                        class="btn-primary" 
-                                        onclick="document.getElementById('${this.containerId}_input').click()">
-                                    📁 ${this.label}
-                                </button>
-                                <div id="${this.containerId}_status" class="upload-status"></div>
-                                <div id="${this.containerId}_progress" class="progress-container">
-                                    <div class="progress-bar">
-                                        <div id="${this.containerId}_progressFill" class="progress-fill"></div>
-                                    </div>
-                                    <span id="${this.containerId}_progressText" class="progress-text">0%</span>
-                                </div>
-                                <div id="${this.containerId}_preview" class="file-preview"></div>
-                            </div>
-                        </div>
-                    `;
-                }
+            FileUpload.prototype.render = function() {
+                return '<div class="file-upload-wrapper"><div class="file-upload-area"><input type="file" id="' + this.containerId + '_input" accept="' + this.accept + '" style="display:none;" /><button type="button" class="btn-primary" onclick="document.getElementById(\'' + this.containerId + '_input\').click()">📁 ' + this.label + '</button><div id="' + this.containerId + '_status" class="upload-status"></div><div id="' + this.containerId + '_progress" class="progress-container"><div class="progress-bar"><div id="' + this.containerId + '_progressFill" class="progress-fill"></div></div><span id="' + this.containerId + '_progressText" class="progress-text">0%</span></div><div id="' + this.containerId + '_preview" class="file-preview"></div></div></div>';
+            };
 
-                init() {
-                    const fileInput = document.getElementById(`${this.containerId}_input`);
-                    if (!fileInput) return;
+            FileUpload.prototype.init = function() {
+                var fileInput = document.getElementById(this.containerId + '_input');
+                var self = this;
+                if (!fileInput) return;
 
-                    fileInput.addEventListener('change', async (e) => {
-                        const file = e.target.files[0];
-                        if (!file) return;
+                fileInput.addEventListener('change', function(e) {
+                    var file = e.target.files[0];
+                    if (!file) return;
 
-                        if (file.size > this.maxSize) {
-                            alert(`File is too large. Maximum size is ${this.maxSize / (1024 * 1024)}MB.`);
-                            fileInput.value = '';
-                            return;
-                        }
+                    if (file.size > self.maxSize) {
+                        alert('File is too large. Maximum size is ' + (self.maxSize / (1024 * 1024)) + 'MB.');
+                        fileInput.value = '';
+                        return;
+                    }
 
-                        const statusEl = document.getElementById(`${this.containerId}_status`);
-                        const progressContainer = document.getElementById(`${this.containerId}_progress`);
-                        const progressFill = document.getElementById(`${this.containerId}_progressFill`);
-                        const progressText = document.getElementById(`${this.containerId}_progressText`);
-                        const previewEl = document.getElementById(`${this.containerId}_preview`);
+                    var statusEl = document.getElementById(self.containerId + '_status');
+                    var progressContainer = document.getElementById(self.containerId + '_progress');
+                    var progressFill = document.getElementById(self.containerId + '_progressFill');
+                    var progressText = document.getElementById(self.containerId + '_progressText');
+                    var previewEl = document.getElementById(self.containerId + '_preview');
 
-                        progressContainer.style.display = 'block';
-                        statusEl.textContent = `Uploading ${file.name}...`;
+                    progressContainer.style.display = 'block';
+                    statusEl.textContent = 'Uploading ' + file.name + '...';
 
+                    (async function() {
                         try {
-                            const fileExt = file.name.split('.').pop();
-                            const filePath = `${Date.now()}_${Math.random().toString(36).slice(2,8)}.${fileExt}`;
+                            var fileExt = file.name.split('.').pop();
+                            var filePath = Date.now() + '_' + Math.random().toString(36).slice(2, 8) + '.' + fileExt;
 
-                            const { data, error } = await db
+                            var { data, error } = await db
                                 .storage
-                                .from(this.bucket)
+                                .from(self.bucket)
                                 .upload(filePath, file, {
                                     cacheControl: '3600',
                                     upsert: false
@@ -810,36 +947,36 @@
 
                             if (error) throw error;
 
-                            statusEl.innerHTML = `✅ Uploaded: ${file.name}`;
+                            statusEl.innerHTML = '✅ Uploaded: ' + file.name;
                             progressFill.style.width = '100%';
                             progressText.textContent = '100%';
 
-                            this.onUpload(filePath, file.name);
+                            self.onUpload(filePath, file.name);
 
-                            setTimeout(() => {
+                            setTimeout(function() {
                                 progressContainer.style.display = 'none';
                                 progressFill.style.width = '0%';
                                 progressText.textContent = '0%';
                             }, 5000);
 
                         } catch (error) {
-                            statusEl.innerHTML = `❌ ${error.message || 'Upload failed'} — <button type="button" class="btn-outline-dark" style="padding:2px 10px;font-size:12px;" onclick="document.getElementById('${this.containerId}_input').click()">Try again</button>`;
+                            statusEl.innerHTML = '❌ ' + (error.message || 'Upload failed') + ' — <button type="button" class="btn-outline-dark" style="padding:2px 10px;font-size:12px;" onclick="document.getElementById(\'' + self.containerId + '_input\').click()">Try again</button>';
                             progressContainer.style.display = 'none';
                             progressFill.style.width = '0%';
                             progressText.textContent = '0%';
                             fileInput.value = '';
                         }
-                    });
-                }
-            }
+                    })();
+                });
+            };
 
-            const upload = new FileUpload({
+            var upload = new FileUpload({
                 bucket: 'manuscripts',
                 accept: '.pdf,.doc,.docx',
                 label: '📄 Upload Manuscript',
                 maxSize: 20 * 1024 * 1024,
                 containerId: 'authorManuscriptUpload',
-                onUpload: (path, filename) => {
+                onUpload: function(path, filename) {
                     document.getElementById('asManuscriptPath').value = path;
                     document.getElementById('asManuscriptName').value = filename;
                     showToast('Manuscript uploaded!', 'success');
@@ -851,12 +988,13 @@
         }
 
         // ─── TOAST ──────────────────────────────────────────
-        function showToast(msg, type = 'success') {
-            const t = document.getElementById('toast');
+        function showToast(msg, type) {
+            type = type || 'success';
+            var t = document.getElementById('toast');
             t.textContent = msg;
-            t.className = `toast toast-${type}`;
+            t.className = 'toast toast-' + type;
             t.style.display = 'block';
-            setTimeout(() => t.style.display = 'none', 5000);
+            setTimeout(function() { t.style.display = 'none'; }, 5000);
         }
 
         // ─── INIT ──────────────────────────────────────────
