@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Author Dashboard — Department of Sociology, KASU</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Author Dashboard Specific Styles */
+        .author-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+        .author-sidebar {
+            width: 250px;
+            background: var(--kasu-green);
+            color: white;
+            padding: 1.5rem 0;
+            flex-shrink: 0;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+        }
+        .author-sidebar .logo {
+            padding: 0 1.5rem 1.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            font-family: 'Playfair Display', serif;
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+        }
+        .author-sidebar .logo span { color: var(--kasu-gold); }
+        .author-sidebar nav a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 1.5rem;
+            color: rgba(255,255,255,0.7);
+            transition: all 0.2s;
+            cursor: pointer;
+            font-size: 14px;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+        }
+        .author-sidebar nav a:hover,
+        .author-sidebar nav a.active {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+        .author-sidebar .logout-btn {
+            margin-top: 2rem;
+            padding: 10px 1.5rem;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.6);
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: none;
+            border: none;
+            width: 100%;
+            text-align: left;
+        }
+        .author-sidebar .logout-btn:hover { color: white; }
+        .author-content { flex: 1; padding: 2rem; background: #f5f5f5; overflow: auto; }
+
+        .submission-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border-left: 4px solid var(--kasu-gold);
+        }
+        .submission-card .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 100px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status-pending { background: #FFF3E0; color: #E65100; }
+        .status-under_review { background: #E3F2FD; color: #0D47A1; }
+        .status-revisions_required { background: #FFF8E1; color: #F57F17; }
+        .status-accepted { background: #E8F5E9; color: #1B5E20; }
+        .status-rejected { background: #FFEBEE; color: #B71C1C; }
+
+        .submission-meta {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin: 0.5rem 0;
+        }
+        .submission-meta strong { color: var(--text-secondary); }
+
+        @media (max-width: 768px) {
+            .author-sidebar { width: 100%; height: auto; position: relative; }
+            .author-layout { flex-direction: column; }
+            .author-content { padding: 1rem; }
+        }
+
+        /* Registration/Login forms */
+        .auth-container {
+            min-height: 80vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            background: var(--bg-cream);
+        }
+        .auth-box {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.1);
+            max-width: 450px;
+            width: 100%;
+        }
+        .auth-box h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.8rem;
+            color: var(--kasu-green);
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+        .auth-box .subtitle {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 1.5rem;
+        }
+        .auth-box .form-group { margin-bottom: 1rem; }
+        .auth-box label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+        .auth-box input,
+        .auth-box textarea,
+        .auth-box select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+        }
+        .auth-box .btn-primary { width: 100%; text-align: center; }
+        .auth-box .auth-link {
+            text-align: center;
+            margin-top: 1rem;
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+        .auth-box .auth-link a {
+            color: var(--kasu-green);
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .auth-box .auth-link a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+    <!-- ═══════════ TOP BAR ═══════════ -->
+    <div class="top-bar">
+        <div class="inner">
+            <span>📍 Faculty of Social Sciences, Kaduna State University — Kaduna, Nigeria</span>
+            <div class="links">
+                <a href="index.html">Home</a>
+                <a href="admin.html">Admin</a>
+                <span style="color: var(--kasu-gold); font-weight: 600;">|</span>
+                <a href="author.html" style="color: var(--kasu-gold); font-weight: 600;">Author Dashboard</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════ AUTH: LOGIN/REGISTER ═══════════ -->
+    <div id="authView" style="display:block;">
+        <div class="auth-container">
+            <div class="auth-box">
+                <h2>🔐 Author Portal</h2>
+                <p class="subtitle">Login or create an account to submit and track your papers</p>
+
+                <!-- Login Form -->
+                <div id="loginForm">
+                    <form onsubmit="authorLogin(event)">
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" id="authorEmail" placeholder="you@example.com" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Password</label>
+                            <input type="password" id="authorPassword" placeholder="••••••••" required>
+                        </div>
+                        <div id="authorLoginError" style="color:#dc2626;font-size:14px;margin-bottom:1rem;display:none;"></div>
+                        <button type="submit" class="btn-primary">Login →</button>
+                    </form>
+                    <div class="auth-link">
+                        Don't have an account? <a onclick="showRegister()">Register here</a>
+                    </div>
+                </div>
+
+                <!-- Register Form -->
+                <div id="registerForm" style="display:none;">
+                    <form onsubmit="authorRegister(event)">
+                        <div class="form-group">
+                            <label>Full Name *</label>
+                            <input type="text" id="regName" placeholder="Dr. Jane Doe" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Email *</label>
+                            <input type="email" id="regEmail" placeholder="you@example.com" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Password * (min 6 characters)</label>
+                            <input type="password" id="regPassword" placeholder="••••••••" minlength="6" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Affiliation (e.g., University)</label>
+                            <input type="text" id="regAffiliation" placeholder="Kaduna State University">
+                        </div>
+                        <div class="form-group">
+                            <label>ORCID (optional)</label>
+                            <input type="text" id="regOrcid" placeholder="https://orcid.org/0000-0000-0000-0000">
+                        </div>
+                        <div id="authorRegisterError" style="color:#dc2626;font-size:14px;margin-bottom:1rem;display:none;"></div>
+                        <button type="submit" class="btn-primary">Register →</button>
+                    </form>
+                    <div class="auth-link">
+                        Already have an account? <a onclick="showLogin()">Login here</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════ AUTHOR DASHBOARD ═══════════ -->
+    <div id="dashboardView" style="display:none;">
+        <div class="author-layout">
+            <div class="author-sidebar">
+                <div class="logo">KASU <span>Sociology</span></div>
+                <nav>
+                    <a class="active" onclick="showAuthorPage('dashboard')" data-page="dashboard">📊 Dashboard</a>
+                    <a onclick="showAuthorPage('submissions')" data-page="submissions">📝 My Submissions</a>
+                    <a onclick="showAuthorPage('submit')" data-page="submit">✏️ New Submission</a>
+                    <a onclick="showAuthorPage('profile')" data-page="profile">👤 Profile</a>
+                </nav>
+                <button class="logout-btn" onclick="authorLogout()">🚪 Logout</button>
+            </div>
+            <div class="author-content">
+
+                <!-- Dashboard -->
+                <div id="author-dashboard">
+                    <h1 style="font-family:'Playfair Display',serif;font-size:1.8rem;color:var(--kasu-green);margin-bottom:1.5rem;">Welcome, <span id="authorName">Author</span></h1>
+                    <div class="admin-stats" id="authorStats">
+                        <div class="admin-stat-card"><h3>Total Submissions</h3><div class="number" id="statTotal">0</div></div>
+                        <div class="admin-stat-card"><h3>Under Review</h3><div class="number" id="statUnderReview">0</div></div>
+                        <div class="admin-stat-card"><h3>Revisions Required</h3><div class="number" id="statRevisions">0</div></div>
+                        <div class="admin-stat-card"><h3>Accepted</h3><div class="number" id="statAccepted">0</div></div>
+                    </div>
+                </div>
+
+                <!-- My Submissions -->
+                <div id="author-submissions" style="display:none;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
+                        <h1 style="font-family:'Playfair Display',serif;font-size:1.8rem;color:var(--kasu-green);">My Submissions</h1>
+                        <button class="btn-primary" onclick="showAuthorPage('submit')">+ New Submission</button>
+                    </div>
+                    <div id="submissionsList">
+                        <div class="loading"><div class="loading-spinner"></div>Loading your submissions...</div>
+                    </div>
+                </div>
+
+                <!-- New Submission -->
+                <div id="author-submit" style="display:none;">
+                    <h1 style="font-family:'Playfair Display',serif;font-size:1.8rem;color:var(--kasu-green);margin-bottom:1.5rem;">New Submission</h1>
+                    <div class="admin-form" style="max-width:100%;">
+                        <form onsubmit="authorSubmitPaper(event)">
+                            <div class="form-group">
+                                <label>Manuscript Title *</label>
+                                <input type="text" id="asTitle" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Research Area</label>
+                                <select id="asArea">
+                                    <option>Urban Sociology</option>
+                                    <option>Gender & Society</option>
+                                    <option>Political Sociology</option>
+                                    <option>Health Sociology</option>
+                                    <option>Environmental Sociology</option>
+                                    <option>Rural Development</option>
+                                    <option>Criminology</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Abstract * (max 250 words)</label>
+                                <textarea id="asAbstract" rows="5" required></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Keywords (exactly 5, comma separated)</label>
+                                <input type="text" id="asKeywords" placeholder="urbanisation, poverty, youth, policy, Kaduna">
+                            </div>
+                            <div class="form-group">
+                                <label>AI Tool Usage Disclosure</label>
+                                <textarea id="asAiTools" rows="2" placeholder="Describe any AI tools used, or write 'None'"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Upload Manuscript (PDF or Word, max 20MB)</label>
+                                <div id="authorManuscriptUploadContainer" style="color:#767676;font-size:13px;padding:0.75rem;border:1px dashed #D8D8D8;border-radius:6px;">Loading upload control…</div>
+                                <input type="hidden" id="asManuscriptPath">
+                                <input type="hidden" id="asManuscriptName">
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn-primary">Submit Manuscript →</button>
+                                <button type="button" class="btn-outline-dark" onclick="showAuthorPage('dashboard')">Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Profile -->
+                <div id="author-profile" style="display:none;">
+                    <h1 style="font-family:'Playfair Display',serif;font-size:1.8rem;color:var(--kasu-green);margin-bottom:1.5rem;">My Profile</h1>
+                    <div class="admin-form" style="max-width:100%;">
+                        <form onsubmit="authorUpdateProfile(event)">
+                            <div class="form-group">
+                                <label>Full Name *</label>
+                                <input type="text" id="apName" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Email</label>
+                                <input type="email" id="apEmail" disabled style="background:#f5f5f5;">
+                            </div>
+                            <div class="form-group">
+                                <label>Affiliation</label>
+                                <input type="text" id="apAffiliation">
+                            </div>
+                            <div class="form-group">
+                                <label>ORCID</label>
+                                <input type="text" id="apOrcid" placeholder="https://orcid.org/0000-0000-0000-0000">
+                            </div>
+                            <div class="form-group">
+                                <label>Bio</label>
+                                <textarea id="apBio" rows="3" placeholder="Brief biography"></textarea>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn-primary">Update Profile</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════ TOAST ═══════════ -->
+    <div id="toast" class="toast"></div>
+
+    <!-- ═══════════ JAVASCRIPT ═══════════ -->
+    <script>
+        // ─── SUPABASE CONFIG ──────────────────────────────
+        const SUPABASE_URL = 'https://xonqebmlxlbvvhvmhhxv.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhvbnFlYm1seGxidnZodm1oaHh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMzczMTEsImV4cCI6MjEwMTYxMzMxMX0.8txFv3_7FH0XGbfXSy8A17t9xsPoGD-kCkZBARhyXQc';
+
+        let db = null;
+        let currentUser = null;
+        let authorSubmissions = [];
+
+        // ─── INIT ──────────────────────────────────────────
+        async function init() {
+            try {
+                db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                console.log('✅ Supabase initialized');
+
+                // Check if user is already logged in
+                const { data } = await db.auth.getSession();
+                if (data.session) {
+                    currentUser = data.session.user;
+                    await loadAuthorProfile();
+                    showDashboardView();
+                    loadAuthorDashboard();
+                } else {
+                    showAuthView();
+                }
+
+                // Initialize file upload for author submissions
+                initAuthorFileUpload();
+
+            } catch (e) {
+                console.error('❌ Init error:', e);
+                showToast('Error loading page', 'error');
+            }
+        }
+
+        // ─── AUTH VIEWS ────────────────────────────────────
+        function showAuthView() {
+            document.getElementById('authView').style.display = 'block';
+            document.getElementById('dashboardView').style.display = 'none';
+        }
+
+        function showDashboardView() {
+            document.getElementById('authView').style.display = 'none';
+            document.getElementById('dashboardView').style.display = 'block';
+        }
+
+        function showLogin() {
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('registerForm').style.display = 'none';
+            document.getElementById('authorLoginError').style.display = 'none';
+            document.getElementById('authorRegisterError').style.display = 'none';
+        }
+
+        function showRegister() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('registerForm').style.display = 'block';
+            document.getElementById('authorLoginError').style.display = 'none';
+            document.getElementById('authorRegisterError').style.display = 'none';
+        }
+
+        // ─── AUTH: REGISTER ────────────────────────────────
+        async function authorRegister(e) {
+            e.preventDefault();
+            const name = document.getElementById('regName').value;
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPassword').value;
+            const affiliation = document.getElementById('regAffiliation').value;
+            const orcid = document.getElementById('regOrcid').value;
+            const err = document.getElementById('authorRegisterError');
+
+            try {
+                const { data, error } = await db.auth.signUp({
+                    email,
+                    password,
+                    options: {
+                        data: {
+                            full_name: name,
+                            affiliation: affiliation,
+                            orcid: orcid,
+                            role: 'author'
+                        }
+                    }
+                });
+                if (error) throw error;
+
+                // Create profile
+                await db.from('profiles').insert({
+                    id: data.user.id,
+                    email: email,
+                    name: name,
+                    affiliation: affiliation,
+                    orcid: orcid,
+                    role: 'author'
+                });
+
+                err.style.display = 'none';
+                showToast('Registration successful! Please login.', 'success');
+                showLogin();
+                document.getElementById('registerForm').querySelector('form').reset();
+
+            } catch (e) {
+                err.textContent = e.message || 'Registration failed';
+                err.style.display = 'block';
+            }
+        }
+
+        // ─── AUTH: LOGIN ────────────────────────────────────
+        async function authorLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('authorEmail').value;
+            const password = document.getElementById('authorPassword').value;
+            const err = document.getElementById('authorLoginError');
+
+            try {
+                const { data, error } = await db.auth.signInWithPassword({ email, password });
+                if (error) throw error;
+
+                currentUser = data.user;
+                err.style.display = 'none';
+                showToast('Login successful!', 'success');
+                await loadAuthorProfile();
+                showDashboardView();
+                loadAuthorDashboard();
+                document.getElementById('loginForm').querySelector('form').reset();
+
+            } catch (e) {
+                err.textContent = e.message || 'Invalid credentials';
+                err.style.display = 'block';
+            }
+        }
+
+        // ─── AUTH: LOGOUT ───────────────────────────────────
+        async function authorLogout() {
+            await db.auth.signOut();
+            currentUser = null;
+            showToast('Logged out', 'info');
+            showAuthView();
+        }
+
+        // ─── LOAD AUTHOR PROFILE ──────────────────────────
+        async function loadAuthorProfile() {
+            if (!currentUser) return;
+            try {
+                const { data, error } = await db
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', currentUser.id)
+                    .single();
+
+                if (error) throw error;
+
+                // Update dashboard with name
+                document.getElementById('authorName').textContent = data.name || 'Author';
+
+                // Profile form
+                document.getElementById('apName').value = data.name || '';
+                document.getElementById('apEmail').value = data.email || '';
+                document.getElementById('apAffiliation').value = data.affiliation || '';
+                document.getElementById('apOrcid').value = data.orcid || '';
+                document.getElementById('apBio').value = data.bio || '';
+
+            } catch (e) {
+                console.error('Error loading profile:', e);
+            }
+        }
+
+        // ─── AUTHOR PAGE NAVIGATION ──────────────────────
+        function showAuthorPage(page) {
+            document.querySelectorAll('.author-content > div').forEach(el => el.style.display = 'none');
+            const target = document.getElementById(`author-${page}`);
+            if (target) target.style.display = 'block';
+            document.querySelectorAll('.author-sidebar nav a').forEach(a => a.classList.remove('active'));
+            const link = document.querySelector(`.author-sidebar nav a[data-page="${page}"]`);
+            if (link) link.classList.add('active');
+
+            if (page === 'dashboard') loadAuthorDashboard();
+            if (page === 'submissions') loadAuthorSubmissions();
+        }
+
+        // ─── AUTHOR DASHBOARD ─────────────────────────────
+        async function loadAuthorDashboard() {
+            if (!currentUser) return;
+            try {
+                const { data, error } = await db
+                    .from('submissions')
+                    .select('*')
+                    .eq('author_id', currentUser.id);
+
+                if (error) throw error;
+
+                const submissions = data || [];
+                const total = submissions.length;
+                const underReview = submissions.filter(s => s.status === 'under_review').length;
+                const revisions = submissions.filter(s => s.status === 'revisions_required').length;
+                const accepted = submissions.filter(s => s.status === 'accepted').length;
+
+                document.getElementById('statTotal').textContent = total;
+                document.getElementById('statUnderReview').textContent = underReview;
+                document.getElementById('statRevisions').textContent = revisions;
+                document.getElementById('statAccepted').textContent = accepted;
+
+                authorSubmissions = submissions;
+
+            } catch (e) {
+                console.error('Error loading dashboard:', e);
+            }
+        }
+
+        // ─── AUTHOR SUBMISSIONS ──────────────────────────
+        async function loadAuthorSubmissions() {
+            if (!currentUser) return;
+            try {
+                const { data, error } = await db
+                    .from('submissions')
+                    .select('*')
+                    .eq('author_id', currentUser.id)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                const container = document.getElementById('submissionsList');
+                if (!data || data.length === 0) {
+                    container.innerHTML = `
+                        <div style="text-align:center;padding:3rem;color:var(--text-muted);">
+                            <p style="font-size:1.2rem;margin-bottom:0.5rem;">📝 No submissions yet</p>
+                            <p>Click "New Submission" to submit your first paper.</p>
+                            <button class="btn-primary" onclick="showAuthorPage('submit')" style="margin-top:1rem;">Submit Now →</button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const statusLabels = {
+                    'pending': 'Pending Review',
+                    'under_review': 'Under Review',
+                    'revisions_required': 'Revisions Required',
+                    'accepted': 'Accepted',
+                    'rejected': 'Rejected'
+                };
+
+                container.innerHTML = data.map(s => `
+                    <div class="submission-card">
+                        <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:0.5rem;">
+                            <h3 style="font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--text-primary);">${s.title}</h3>
+                            <span class="status status-${s.status}">${statusLabels[s.status] || s.status}</span>
+                        </div>
+                        <div class="submission-meta">
+                            <strong>Submitted:</strong> ${new Date(s.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                        </div>
+                        <div class="submission-meta">
+                            <strong>Research Area:</strong> ${s.research_area || '—'}
+                        </div>
+                        ${s.abstract ? `<div class="submission-meta"><strong>Abstract:</strong> ${s.abstract.substring(0, 150)}${s.abstract.length > 150 ? '...' : ''}</div>` : ''}
+                        ${s.manuscript_path ? `<div class="submission-meta"><strong>File:</strong> ${s.manuscript_filename || 'Uploaded'}</div>` : ''}
+                    </div>
+                `).join('');
+
+            } catch (e) {
+                console.error('Error loading submissions:', e);
+                document.getElementById('submissionsList').innerHTML = '<p style="color:red;">Error loading submissions</p>';
+            }
+        }
+
+        // ─── AUTHOR SUBMIT PAPER ─────────────────────────
+        async function authorSubmitPaper(e) {
+            e.preventDefault();
+            if (!currentUser) {
+                showToast('Please login first', 'error');
+                return;
+            }
+
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Submitting…';
+
+            try {
+                const title = document.getElementById('asTitle').value;
+                const research_area = document.getElementById('asArea').value;
+                const abstract = document.getElementById('asAbstract').value;
+                const keywords = document.getElementById('asKeywords').value;
+                const ai_tools_disclosure = document.getElementById('asAiTools').value || 'None';
+                const manuscript_path = document.getElementById('asManuscriptPath').value || null;
+                const manuscript_filename = document.getElementById('asManuscriptName').value || null;
+
+                // Validate abstract word count
+                const wordCount = abstract.trim().split(/\s+/).filter(Boolean).length;
+                if (wordCount > 250) {
+                    showToast(`Abstract is ${wordCount} words — please shorten to 250 words or fewer.`, 'error');
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                    return;
+                }
+
+                const { data, error } = await db
+                    .from('submissions')
+                    .insert({
+                        author_id: currentUser.id,
+                        author_name: document.getElementById('apName')?.value || currentUser.email,
+                        email: currentUser.email,
+                        title: title,
+                        research_area: research_area,
+                        abstract: abstract,
+                        keywords: keywords,
+                        ai_tools_disclosure: ai_tools_disclosure,
+                        manuscript_path: manuscript_path,
+                        manuscript_filename: manuscript_filename,
+                        status: 'pending'
+                    })
+                    .select()
+                    .single();
+
+                if (error) throw error;
+
+                showToast('Paper submitted successfully!', 'success');
+                e.target.reset();
+                document.getElementById('asManuscriptPath').value = '';
+                document.getElementById('asManuscriptName').value = '';
+                // Reset upload status
+                document.querySelector('#authorManuscriptUploadContainer .upload-status')?.remove();
+                document.querySelector('#authorManuscriptUploadContainer .file-preview')?.innerHTML = '';
+
+                showAuthorPage('submissions');
+                loadAuthorSubmissions();
+                loadAuthorDashboard();
+
+            } catch (e) {
+                console.error('Submission error:', e);
+                showToast(e.message || 'Error submitting paper', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalText;
+            }
+        }
+
+        // ─── AUTHOR UPDATE PROFILE ──────────────────────
+        async function authorUpdateProfile(e) {
+            e.preventDefault();
+            if (!currentUser) return;
+
+            try {
+                const { error } = await db
+                    .from('profiles')
+                    .update({
+                        name: document.getElementById('apName').value,
+                        affiliation: document.getElementById('apAffiliation').value,
+                        orcid: document.getElementById('apOrcid').value,
+                        bio: document.getElementById('apBio').value,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', currentUser.id);
+
+                if (error) throw error;
+
+                showToast('Profile updated successfully!', 'success');
+                loadAuthorProfile();
+
+            } catch (e) {
+                showToast(e.message || 'Error updating profile', 'error');
+            }
+        }
+
+        // ─── FILE UPLOAD FOR AUTHOR ──────────────────────
+        function initAuthorFileUpload() {
+            const container = document.getElementById('authorManuscriptUploadContainer');
+            if (!container) return;
+
+            class FileUpload {
+                constructor(options = {}) {
+                    this.bucket = options.bucket || 'manuscripts';
+                    this.accept = options.accept || '.pdf,.doc,.docx';
+                    this.label = options.label || 'Upload Manuscript';
+                    this.onUpload = options.onUpload || (() => {});
+                    this.maxSize = options.maxSize || 20 * 1024 * 1024;
+                    this.containerId = options.containerId || 'authorManuscriptUpload';
+                    this.isPrivate = true;
+                }
+
+                render() {
+                    return `
+                        <div class="file-upload-wrapper">
+                            <div class="file-upload-area">
+                                <input type="file" 
+                                       id="${this.containerId}_input" 
+                                       accept="${this.accept}" 
+                                       style="display:none;" />
+                                <button type="button" 
+                                        class="btn-primary" 
+                                        onclick="document.getElementById('${this.containerId}_input').click()">
+                                    📁 ${this.label}
+                                </button>
+                                <div id="${this.containerId}_status" class="upload-status"></div>
+                                <div id="${this.containerId}_progress" class="progress-container">
+                                    <div class="progress-bar">
+                                        <div id="${this.containerId}_progressFill" class="progress-fill"></div>
+                                    </div>
+                                    <span id="${this.containerId}_progressText" class="progress-text">0%</span>
+                                </div>
+                                <div id="${this.containerId}_preview" class="file-preview"></div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                init() {
+                    const fileInput = document.getElementById(`${this.containerId}_input`);
+                    if (!fileInput) return;
+
+                    fileInput.addEventListener('change', async (e) => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+
+                        if (file.size > this.maxSize) {
+                            alert(`File is too large. Maximum size is ${this.maxSize / (1024 * 1024)}MB.`);
+                            fileInput.value = '';
+                            return;
+                        }
+
+                        const statusEl = document.getElementById(`${this.containerId}_status`);
+                        const progressContainer = document.getElementById(`${this.containerId}_progress`);
+                        const progressFill = document.getElementById(`${this.containerId}_progressFill`);
+                        const progressText = document.getElementById(`${this.containerId}_progressText`);
+                        const previewEl = document.getElementById(`${this.containerId}_preview`);
+
+                        progressContainer.style.display = 'block';
+                        statusEl.textContent = `Uploading ${file.name}...`;
+
+                        try {
+                            const fileExt = file.name.split('.').pop();
+                            const filePath = `${Date.now()}_${Math.random().toString(36).slice(2,8)}.${fileExt}`;
+
+                            const { data, error } = await db
+                                .storage
+                                .from(this.bucket)
+                                .upload(filePath, file, {
+                                    cacheControl: '3600',
+                                    upsert: false
+                                });
+
+                            if (error) throw error;
+
+                            statusEl.innerHTML = `✅ Uploaded: ${file.name}`;
+                            progressFill.style.width = '100%';
+                            progressText.textContent = '100%';
+
+                            this.onUpload(filePath, file.name);
+
+                            setTimeout(() => {
+                                progressContainer.style.display = 'none';
+                                progressFill.style.width = '0%';
+                                progressText.textContent = '0%';
+                            }, 5000);
+
+                        } catch (error) {
+                            statusEl.innerHTML = `❌ ${error.message || 'Upload failed'} — <button type="button" class="btn-outline-dark" style="padding:2px 10px;font-size:12px;" onclick="document.getElementById('${this.containerId}_input').click()">Try again</button>`;
+                            progressContainer.style.display = 'none';
+                            progressFill.style.width = '0%';
+                            progressText.textContent = '0%';
+                            fileInput.value = '';
+                        }
+                    });
+                }
+            }
+
+            const upload = new FileUpload({
+                bucket: 'manuscripts',
+                accept: '.pdf,.doc,.docx',
+                label: '📄 Upload Manuscript',
+                maxSize: 20 * 1024 * 1024,
+                containerId: 'authorManuscriptUpload',
+                onUpload: (path, filename) => {
+                    document.getElementById('asManuscriptPath').value = path;
+                    document.getElementById('asManuscriptName').value = filename;
+                    showToast('Manuscript uploaded!', 'success');
+                }
+            });
+
+            container.innerHTML = upload.render();
+            upload.init();
+        }
+
+        // ─── TOAST ──────────────────────────────────────────
+        function showToast(msg, type = 'success') {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = `toast toast-${type}`;
+            t.style.display = 'block';
+            setTimeout(() => t.style.display = 'none', 5000);
+        }
+
+        // ─── INIT ──────────────────────────────────────────
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+
+</body>
+</html>
