@@ -283,28 +283,6 @@ function initFileUploads() {
     logoUpload.init();
   }
 
-  // Manuscript Upload — Quick Submission Form (private, blind review)
-  const quickManuscriptContainer = document.getElementById(
-    "quickManuscriptUploadContainer"
-  );
-  if (quickManuscriptContainer) {
-    const manuscriptUpload = new FileUpload({
-      bucket: "manuscripts",
-      accept: ".pdf,.doc,.docx",
-      label: "📄 Upload Manuscript",
-      maxSize: 20 * 1024 * 1024,
-      containerId: "quickManuscriptUpload",
-      isPrivate: true,
-      onUpload: (path, url, fileName) => {
-        document.getElementById("subManuscriptPath").value = path;
-        document.getElementById("subManuscriptName").value = fileName;
-        showToast("Manuscript uploaded!", "success");
-      },
-    });
-    quickManuscriptContainer.innerHTML = manuscriptUpload.render();
-    manuscriptUpload.init();
-  }
-
   // Manuscript Upload — Full Submit page form (private, blind review)
   const fullManuscriptContainer = document.getElementById(
     "fullManuscriptUploadContainer"
@@ -325,5 +303,23 @@ function initFileUploads() {
     });
     fullManuscriptContainer.innerHTML = manuscriptUploadFull.render();
     manuscriptUploadFull.init();
+  }
+
+  // Author Profile Avatar Upload (public — shown on the author's public page)
+  const avatarContainer = document.getElementById("avatarUploadContainer");
+  if (avatarContainer) {
+    const avatarUpload = new FileUpload({
+      bucket: "author-avatars",
+      accept: "image/*",
+      label: "📸 Upload Photo",
+      maxSize: 5 * 1024 * 1024,
+      containerId: "avatarUpload",
+      onUpload: (path, url) => {
+        document.getElementById("profileAvatarUrl").value = url;
+        showToast("Photo uploaded — click Save Profile to keep it.", "success");
+      },
+    });
+    avatarContainer.innerHTML = avatarUpload.render();
+    avatarUpload.init();
   }
 }
