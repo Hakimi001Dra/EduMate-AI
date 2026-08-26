@@ -210,6 +210,34 @@ async function renderReviewerPage() {
     const emailEl = document.getElementById('reviewerUserEmail');
     if (emailEl && currentUser) emailEl.textContent = currentUser.email;
 
+    // Populate the reviewer's own credential card
+    if (currentUser) {
+        try {
+            const { data: profile } = await db.from('profiles').select('*').eq('id', currentUser.id).single();
+            const nameEl = document.getElementById('reviewerNameDisplay');
+            const avatarEl = document.getElementById('reviewerAvatarDisplay');
+            if (nameEl) nameEl.textContent = profile.full_name || currentUser.email;
+            if (avatarEl) {
+                avatarEl.innerHTML = profile.avatar_url
+                    ? `<img src="${profile.avatar_url}" alt="" style="width:100%;height:100%;object-fit:cover;">`
+                    : initialsFromName(profile.full_name || currentUser.email);
+            }
+
+            const statStripEl = document.getElementById('reviewerStatStrip');
+            if (statStripEl) {
+                const { data: assignments } = await db.from('submission_reviewers').select('status').eq('reviewer_id', currentUser.id);
+                const completed = (assignments || []).filter(a => a.status === 'completed').length;
+                const pending = (assignments || []).filter(a => a.status === 'assigned').length;
+                statStripEl.innerHTML = renderStatStrip([
+                    { value: pending, label: 'Pending Review' },
+                    { value: completed, label: 'Completed' },
+                ]);
+            }
+        } catch (e) {
+            console.error('Could not load reviewer profile:', e);
+        }
+    }
+
     const container = document.getElementById('reviewerAssignmentsList');
     if (!container || !currentUser) return;
     container.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Loading...</div>';
@@ -268,6 +296,38 @@ async function renderReviewerPage() {
     } catch (e) {
         console.error('Error loading reviewer assignments:', e);
         container.innerHTML = '<p style="color:#dc2626;">Could not load your assignments. Please refresh.</p>';
+    }
+}
+
+// Quick profile edit for reviewers (name, affiliation, expertise, bio) —
+// a lightweight prompt-based flow rather than a full form, since reviewers
+// only need to set this occasionally.
+async function editReviewerProfile() {
+    if (!currentUser) return;
+    try {
+        const { data: profile } = await db.from('profiles').select('*').eq('id', currentUser.id).single();
+
+        const fullName = prompt('Full name:', profile.full_name || '');
+        if (fullName === null) return;
+        const affiliation = prompt('Institutional affiliation:', profile.affiliation || '');
+        if (affiliation === null) return;
+        const expertise = prompt('Areas of research expertise (comma separated):', profile.expertise || '');
+        if (expertise === null) return;
+        const bio = prompt('Short bio:', profile.bio || '');
+        if (bio === null) return;
+
+        const { error } = await db.from('profiles').update({
+            full_name: fullName,
+            affiliation: affiliation || null,
+            expertise: expertise || null,
+            bio: bio || null
+        }).eq('id', currentUser.id);
+        if (error) throw error;
+
+        showToast('Profile updated!', 'success');
+        renderReviewerPage();
+    } catch (e) {
+        showToast(e.message || 'Error updating profile', 'error');
     }
 }
 
@@ -398,6 +458,18 @@ function initialsFromName(name) {
     return name.split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase();
 }
 
+// Renders a row of stat cells with thin dividers between them —
+// the "transcript line" signature element shared by author and
+// reviewer profile cards.
+function renderStatStrip(cells) {
+    return cells.map((c, i) => `
+        <div style="flex:1;text-align:center;${i > 0 ? 'border-left:1px solid var(--border);' : ''}">
+            <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:600;color:var(--kasu-green);">${c.value}</div>
+            <div style="font-size:10.5px;letter-spacing:0.05em;color:var(--text-muted);text-transform:uppercase;margin-top:2px;">${c.label}</div>
+        </div>
+    `).join('');
+}
+
 // Loads the logged-in user's profile row and populates both the
 // read-only display and the edit form.
 async function loadMyProfile() {
@@ -414,12 +486,31 @@ async function loadMyProfile() {
 
         if (nameEl) nameEl.textContent = data.full_name || 'Add your name — click Edit Profile';
         if (affEl) affEl.textContent = data.affiliation || '';
-        if (orcidEl) orcidEl.textContent = data.orcid ? `ORCID: ${data.orcid}` : '';
+        if (orcidEl) orcidEl.textContent = data.orcid ? `ORCID ${data.orcid}` : '';
         if (bioEl) bioEl.textContent = data.bio || '';
         if (avatarEl) {
             avatarEl.innerHTML = data.avatar_url
                 ? `<img src="${data.avatar_url}" alt="${data.full_name || ''}" style="width:100%;height:100%;object-fit:cover;">`
                 : initialsFromName(data.full_name || currentUser.email);
+        }
+
+        // Stat strip: how many of this author's submissions are in each state
+        const statStripEl = document.getElementById('profileStatStrip');
+        if (statStripEl) {
+            try {
+                const { data: subs } = await db.from('submissions').select('status').eq('submitter_id', currentUser.id);
+                const counts = { pending: 0, in_review: 0, accepted: 0, rejected: 0 };
+                (subs || []).forEach(s => { if (counts[s.status] !== undefined) counts[s.status]++; });
+                const { count: publishedCount } = await db.from('journals').select('*', { count: 'exact', head: true }).eq('submitter_id', currentUser.id);
+                statStripEl.innerHTML = renderStatStrip([
+                    { value: counts.pending, label: 'Pending' },
+                    { value: counts.in_review, label: 'In Review' },
+                    { value: counts.accepted, label: 'Accepted' },
+                    { value: publishedCount || 0, label: 'Published' },
+                ]);
+            } catch (statErr) {
+                console.error('Could not load profile stats:', statErr);
+            }
         }
 
         // Pre-fill the edit form too
