@@ -246,7 +246,8 @@ async function publishSubmissionToJournal(id) {
             year: parseInt(year) || new Date().getFullYear(),
             published_date: new Date().toISOString().slice(0, 10),
             tags,
-            pdf_url: pdfUrl
+            pdf_url: pdfUrl,
+            submitter_id: sub.submitter_id || null
         });
         if (insErr) throw insErr;
 
