@@ -603,6 +603,25 @@
         </section>
     </div>
 
+    <!-- ═══════════ PAGE: REVIEWER DASHBOARD ═══════════ -->
+    <div id="page-reviewer" class="page-content">
+        <div class="hero" style="padding:3rem 2rem;">
+            <div class="container-custom">
+                <h1 style="color:white;font-family:'Playfair Display',serif;font-size:2.5rem;">Reviewer Dashboard</h1>
+                <p style="color:rgba(255,255,255,0.7);font-size:1.1rem;max-width:600px;">Manuscripts assigned to you for blind review. Author identity is hidden by design.</p>
+            </div>
+        </div>
+        <section class="section-padding section-alt">
+            <div class="container-custom" style="max-width:800px;">
+                <div style="background:white;border-radius:12px;padding:1.25rem 2rem;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:1.5rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;">
+                    <span style="font-size:14px;color:var(--text-secondary);">Logged in as <strong id="reviewerUserEmail"></strong></span>
+                    <button type="button" class="btn-outline-dark" onclick="authLogout()" style="padding:6px 16px;font-size:13px;">Log Out</button>
+                </div>
+                <div id="reviewerAssignmentsList"><div class="loading"><div class="loading-spinner"></div>Loading...</div></div>
+            </div>
+        </section>
+    </div>
+
     <!-- ═══════════ FOOTER ═══════════ -->
     <footer>
         <div class="footer-inner">
