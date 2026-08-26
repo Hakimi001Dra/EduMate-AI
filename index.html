@@ -483,15 +483,21 @@
                             <button type="button" class="btn-outline-dark" id="editProfileToggleBtn" onclick="toggleProfileEdit()" style="padding:6px 16px;font-size:13px;">Edit Profile</button>
                         </div>
                         <div id="profileViewMode">
-                            <div style="display:flex;gap:1.25rem;align-items:center;">
-                                <div id="profileAvatarDisplay" style="width:64px;height:64px;border-radius:50%;background:var(--kasu-green);color:white;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:20px;overflow:hidden;flex-shrink:0;">—</div>
-                                <div>
-                                    <div id="profileNameDisplay" style="font-weight:600;font-size:16px;">Not set yet</div>
-                                    <div id="profileAffiliationDisplay" style="font-size:13.5px;color:var(--text-muted);"></div>
-                                    <div id="profileOrcidDisplay" style="font-size:12.5px;color:var(--kasu-green);"></div>
+                            <div style="display:flex;gap:1.5rem;align-items:center;flex-wrap:wrap;">
+                                <div id="profileAvatarDisplay" style="width:76px;height:76px;border-radius:50%;background:var(--kasu-green);color:white;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:22px;overflow:hidden;flex-shrink:0;border:3px solid var(--kasu-green);box-shadow:0 0 0 3px rgba(26,71,49,0.12);">—</div>
+                                <div style="flex:1;min-width:200px;">
+                                    <div id="profileNameDisplay" style="font-family:'Playfair Display',serif;font-weight:600;font-size:19px;color:#1a1a1a;">Not set yet</div>
+                                    <div style="display:flex;align-items:center;gap:8px;margin:4px 0 6px;flex-wrap:wrap;">
+                                        <span style="font-size:10.5px;font-weight:700;letter-spacing:0.08em;color:var(--kasu-green);background:rgba(26,71,49,0.08);padding:3px 10px;border-radius:100px;">AUTHOR</span>
+                                        <span id="profileOrcidDisplay" style="font-size:12px;color:var(--text-muted);"></span>
+                                    </div>
+                                    <div id="profileAffiliationDisplay" style="font-size:13.5px;color:var(--text-secondary);"></div>
                                 </div>
                             </div>
-                            <p id="profileBioDisplay" style="font-size:13.5px;color:var(--text-secondary);margin-top:0.75rem;"></p>
+                            <p id="profileBioDisplay" style="font-size:13.5px;color:var(--text-secondary);margin-top:1rem;line-height:1.6;"></p>
+                            <div id="profileStatStrip" style="display:flex;margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--border);gap:0;">
+                                <!-- filled by JS: stat cells with dividers -->
+                            </div>
                         </div>
                         <form id="profileEditForm" onsubmit="saveMyProfile(event)" style="display:none;">
                             <div class="form-group" style="margin-bottom:1rem;">
@@ -613,9 +619,20 @@
         </div>
         <section class="section-padding section-alt">
             <div class="container-custom" style="max-width:800px;">
-                <div style="background:white;border-radius:12px;padding:1.25rem 2rem;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:1.5rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;">
-                    <span style="font-size:14px;color:var(--text-secondary);">Logged in as <strong id="reviewerUserEmail"></strong></span>
-                    <button type="button" class="btn-outline-dark" onclick="authLogout()" style="padding:6px 16px;font-size:13px;">Log Out</button>
+                <div style="background:white;border-radius:12px;padding:1.5rem 2rem;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:1.5rem;">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;">
+                        <div style="display:flex;gap:1.25rem;align-items:center;flex-wrap:wrap;">
+                            <div id="reviewerAvatarDisplay" style="width:64px;height:64px;border-radius:50%;background:var(--kasu-gold);color:white;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:20px;overflow:hidden;flex-shrink:0;border:3px solid var(--kasu-gold);box-shadow:0 0 0 3px rgba(200,148,26,0.15);">—</div>
+                            <div>
+                                <div id="reviewerNameDisplay" style="font-family:'Playfair Display',serif;font-weight:600;font-size:17px;color:#1a1a1a;">Loading…</div>
+                                <span style="font-size:10.5px;font-weight:700;letter-spacing:0.08em;color:var(--kasu-gold);background:rgba(200,148,26,0.1);padding:3px 10px;border-radius:100px;display:inline-block;margin-top:4px;">PEER REVIEWER</span>
+                                <button type="button" onclick="editReviewerProfile()" style="background:none;border:none;color:var(--kasu-green);font-size:12px;text-decoration:underline;cursor:pointer;margin-left:8px;padding:0;">Edit Profile</button>
+                                <div id="reviewerUserEmail" style="font-size:12.5px;color:var(--text-muted);margin-top:4px;"></div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-outline-dark" onclick="authLogout()" style="padding:6px 16px;font-size:13px;">Log Out</button>
+                    </div>
+                    <div id="reviewerStatStrip" style="display:flex;margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--border);gap:0;"></div>
                 </div>
                 <div id="reviewerAssignmentsList"><div class="loading"><div class="loading-spinner"></div>Loading...</div></div>
             </div>
