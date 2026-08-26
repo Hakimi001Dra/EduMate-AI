@@ -23,6 +23,7 @@ async function init() {
             adminSession = data.session;
             showAdminDashboardView();
             loadAdminDashboard();
+            loadAdminIdentity();
         } else {
             showAdminLoginView();
         }
@@ -71,6 +72,17 @@ async function loadAdminSettings() {
     if (emailField) emailField.value = siteSettings.submission_email || '';
     if (logoUrlField) logoUrlField.value = siteSettings.site_logo_url || '';
 
+    // Admin's own name/title, stored on their profiles row (not in settings)
+    if (adminSession) {
+        try {
+            const { data: profile } = await db.from('profiles').select('full_name, title').eq('id', adminSession.user.id).single();
+            const nameField = document.getElementById('setAdminName');
+            const titleField = document.getElementById('setAdminTitle');
+            if (nameField) nameField.value = (profile && profile.full_name) || '';
+            if (titleField) titleField.value = (profile && profile.title) || '';
+        } catch (e) { console.warn('Could not load admin profile:', e.message); }
+    }
+
     const logoPreview = document.getElementById('logoUpload_preview');
     if (logoPreview && siteSettings.site_logo_url) {
         logoPreview.innerHTML = `<img src="${siteSettings.site_logo_url}" alt="Current logo" style="max-width:80px;max-height:80px;border-radius:8px;"><br><span style="font-size:11px;color:var(--text-muted);">Current logo</span>`;
@@ -103,6 +115,7 @@ async function adminLogin(e) {
         showToast('Login successful!', 'success');
         showAdminDashboardView();
         loadAdminDashboard();
+        loadAdminIdentity();
     } catch (e) { err.textContent = e.message || 'Invalid credentials'; err.style.display = 'block'; }
 }
 
@@ -130,6 +143,53 @@ async function loadAdminDashboard() {
         document.getElementById('adminStatProgrammes').textContent = pc || 0;
         document.getElementById('adminStatSubmissions').textContent = sc || 0;
     } catch (e) { console.error(e); }
+    loadAdminActivityLog();
+}
+
+// Shows the admin's own name/title in the sidebar identity card.
+async function loadAdminIdentity() {
+    if (!adminSession) return;
+    try {
+        const { data, error } = await db.from('profiles').select('*').eq('id', adminSession.user.id).single();
+        if (error) throw error;
+        const nameEl = document.getElementById('adminNameDisplay');
+        const avatarEl = document.getElementById('adminAvatarDisplay');
+        if (nameEl) nameEl.textContent = data.full_name || adminSession.user.email;
+        if (avatarEl) {
+            const initials = (data.full_name || adminSession.user.email).split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase();
+            avatarEl.innerHTML = data.avatar_url
+                ? `<img src="${data.avatar_url}" alt="" style="width:100%;height:100%;object-fit:cover;">`
+                : initials;
+        }
+    } catch (e) {
+        console.error('Could not load admin identity:', e);
+    }
+}
+
+// Recent Activity widget — reads from the activity_log table, which is
+// populated automatically by database triggers (status changes, reviewer
+// assignments, publishes), not by the frontend directly.
+async function loadAdminActivityLog() {
+    const c = document.getElementById('adminActivityLog');
+    if (!c) return;
+    try {
+        const { data, error } = await db.from('activity_log').select('*').order('created_at', { ascending: false }).limit(8);
+        if (error) throw error;
+        if (!data || !data.length) {
+            c.innerHTML = '<p style="text-align:center;padding:1.5rem;color:var(--text-muted);font-size:13.5px;">No activity yet.</p>';
+            return;
+        }
+        const actionIcons = { status_change: '🔄', assign_reviewer: '🧑‍🔬', publish: '📰' };
+        c.innerHTML = `<div style="background:white;border-radius:8px;overflow:hidden;">${data.map(a => `
+            <div style="padding:0.75rem 1.25rem;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center;font-size:13.5px;">
+                <span>${actionIcons[a.action] || '•'}</span>
+                <span style="flex:1;color:var(--text-secondary);">${a.detail || a.action}</span>
+                <span style="font-size:11.5px;color:var(--text-muted);white-space:nowrap;">${new Date(a.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+            </div>
+        `).join('')}</div>`;
+    } catch (e) {
+        c.innerHTML = '<p style="color:red;font-size:13px;">Could not load activity.</p>';
+    }
 }
 
 async function loadAdminSubmissions() {
@@ -546,6 +606,16 @@ async function adminSaveSettings(e) {
         siteSettings.submission_deadline = document.getElementById('setSubmissionDeadline').value || null;
         siteSettings.submission_email = document.getElementById('setSubmissionEmail').value || 'kjsss@kasu.edu.ng';
         siteSettings.site_logo_url = document.getElementById('setSiteLogoUrl').value || null;
+
+        // Admin's own name/title live on their profiles row
+        if (adminSession) {
+            await db.from('profiles').update({
+                full_name: document.getElementById('setAdminName').value || null,
+                title: document.getElementById('setAdminTitle').value || null
+            }).eq('id', adminSession.user.id);
+            loadAdminIdentity();
+        }
+
         showToast('Settings saved! It will show on the live site next page load.', 'success');
     } catch (e) { showToast(e.message || 'Error saving settings', 'error'); }
 }
