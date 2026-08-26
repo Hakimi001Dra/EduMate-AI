@@ -11,6 +11,7 @@ let siteSettings = {
 };
 
 let currentUser = null; // the logged-in author's session.user, or null
+let currentUserRole = null; // 'user' (author), 'reviewer', or 'admin' — from profiles.role
 
 // ─── TOAST ──────────────────────────────────────────
 function showToast(msg, type = 'success') {
@@ -34,9 +35,11 @@ async function init() {
         // Track auth state for the Submit page's login gate
         const { data: sessionData } = await db.auth.getSession();
         currentUser = sessionData.session ? sessionData.session.user : null;
+        await refreshCurrentUserRole();
 
-        db.auth.onAuthStateChange((_event, session) => {
+        db.auth.onAuthStateChange(async (_event, session) => {
             currentUser = session ? session.user : null;
+            await refreshCurrentUserRole();
             renderSubmitPageAuthState();
         });
 
@@ -51,6 +54,11 @@ document.addEventListener('DOMContentLoaded', init);
 
 // ─── PAGE NAVIGATION ─────────────────────────────────
 function showPage(page) {
+    // Reviewers get their own dashboard instead of the author Submit page
+    if (page === 'submit' && currentUserRole === 'reviewer') {
+        page = 'reviewer';
+    }
+
     document.querySelectorAll('.page-content').forEach(el => el.classList.remove('active'));
     const t = document.getElementById(`page-${page}`);
     if (t) t.classList.add('active');
@@ -64,6 +72,9 @@ function showPage(page) {
 
     if (page === 'submit') {
         renderSubmitPageAuthState();
+    }
+    if (page === 'reviewer') {
+        renderReviewerPage();
     }
 }
 
@@ -118,6 +129,7 @@ async function authLogin(e) {
         const { data, error } = await db.auth.signInWithPassword({ email, password });
         if (error) throw error;
         currentUser = data.user;
+        await refreshCurrentUserRole();
         showToast('Logged in!', 'success');
         document.getElementById('authLoginForm').reset();
         renderSubmitPageAuthState();
@@ -150,6 +162,7 @@ async function authRegister(e) {
         // the user to check their inbox rather than assuming they're logged in.
         if (data.session) {
             currentUser = data.user;
+            await refreshCurrentUserRole();
             showToast('Account created — you\'re logged in!', 'success');
             document.getElementById('authRegisterForm').reset();
             renderSubmitPageAuthState();
@@ -168,10 +181,126 @@ async function authLogout() {
     try {
         await db.auth.signOut();
         currentUser = null;
+        currentUserRole = null;
         showToast('Logged out', 'info');
         renderSubmitPageAuthState();
     } catch (e) {
         showToast('Error logging out', 'error');
+    }
+}
+
+// Fetches profiles.role for the current session so the site can route
+// authors vs reviewers to the right dashboard after login.
+async function refreshCurrentUserRole() {
+    if (!currentUser) { currentUserRole = null; return; }
+    try {
+        const { data, error } = await db.from('profiles').select('role').eq('id', currentUser.id).single();
+        if (error) throw error;
+        currentUserRole = data.role;
+    } catch (e) {
+        console.error('Could not load user role:', e);
+        currentUserRole = 'user'; // safe fallback — treat as an ordinary author
+    }
+}
+
+// Loads and renders manuscripts assigned to the logged-in reviewer, each
+// with a review form (recommendation + comments). Uses the blind view,
+// which never includes author name or email.
+async function renderReviewerPage() {
+    const emailEl = document.getElementById('reviewerUserEmail');
+    if (emailEl && currentUser) emailEl.textContent = currentUser.email;
+
+    const container = document.getElementById('reviewerAssignmentsList');
+    if (!container || !currentUser) return;
+    container.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Loading...</div>';
+
+    try {
+        const { data, error } = await db.from('reviewer_submission_view').select('*').order('created_at', { ascending: false });
+        if (error) throw error;
+
+        if (!data || !data.length) {
+            container.innerHTML = '<div style="background:white;border-radius:12px;padding:2rem;text-align:center;color:var(--text-muted);">No manuscripts assigned to you yet.</div>';
+            return;
+        }
+
+        // Fetch this reviewer's own submitted reviews, to show which
+        // assignments are already completed.
+        const { data: myReviews } = await db.from('reviews').select('submission_id').eq('reviewer_id', currentUser.id);
+        const reviewedIds = new Set((myReviews || []).map(r => r.submission_id));
+
+        container.innerHTML = data.map(s => {
+            const alreadyReviewed = reviewedIds.has(s.id);
+            return `
+            <div style="background:white;border-radius:12px;padding:1.5rem 2rem;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:1.25rem;">
+                <h3 style="font-family:'Playfair Display',serif;font-size:1.2rem;margin-bottom:0.5rem;">${s.title}</h3>
+                <div style="font-size:12.5px;color:var(--text-muted);margin-bottom:0.75rem;">${s.research_area || ''} · Submitted ${formatDate(s.created_at)}</div>
+                <p style="font-size:14px;color:var(--text-secondary);line-height:1.7;margin-bottom:0.75rem;"><strong>Abstract:</strong> ${s.abstract}</p>
+                <p style="font-size:13px;color:var(--text-muted);margin-bottom:0.75rem;"><strong>Keywords:</strong> ${s.keywords || '—'}</p>
+                <p style="font-size:13px;color:var(--text-muted);margin-bottom:1rem;"><strong>AI Tool Disclosure:</strong> ${s.ai_tools_disclosure || 'None stated'}</p>
+                ${s.manuscript_path ? `<button type="button" class="btn-outline-dark" style="font-size:12px;padding:6px 14px;margin-bottom:1rem;" onclick="downloadManuscriptAsReviewer('${s.manuscript_path}')">📄 Download Manuscript</button>` : ''}
+
+                ${alreadyReviewed
+                    ? `<div style="background:#f0fdf4;border:1px solid #bbf7d0;color:#16a34a;font-size:13px;padding:0.75rem 1rem;border-radius:6px;">✅ You've already submitted your review for this manuscript.</div>`
+                    : `<form onsubmit="submitReview(event, '${s.id}')" style="border-top:1px solid var(--border);padding-top:1rem;margin-top:0.5rem;">
+                        <div class="form-group" style="margin-bottom:0.75rem;">
+                            <label style="display:block;font-weight:500;margin-bottom:4px;font-size:13.5px;">Recommendation *</label>
+                            <select required id="reviewRec_${s.id}" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:6px;">
+                                <option value="">Select…</option>
+                                <option value="accept">Accept</option>
+                                <option value="minor_revisions">Minor Revisions</option>
+                                <option value="major_revisions">Major Revisions</option>
+                                <option value="reject">Reject</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom:0.75rem;">
+                            <label style="display:block;font-weight:500;margin-bottom:4px;font-size:13.5px;">Comments to Editor (confidential)</label>
+                            <textarea id="reviewEditorComments_${s.id}" rows="2" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:6px;resize:vertical;"></textarea>
+                        </div>
+                        <div class="form-group" style="margin-bottom:0.75rem;">
+                            <label style="display:block;font-weight:500;margin-bottom:4px;font-size:13.5px;">Comments to Author</label>
+                            <textarea id="reviewAuthorComments_${s.id}" rows="2" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:6px;resize:vertical;"></textarea>
+                        </div>
+                        <button type="submit" class="btn-primary" style="font-size:13px;padding:8px 18px;">Submit Review</button>
+                    </form>`
+                }
+            </div>`;
+        }).join('');
+    } catch (e) {
+        console.error('Error loading reviewer assignments:', e);
+        container.innerHTML = '<p style="color:#dc2626;">Could not load your assignments. Please refresh.</p>';
+    }
+}
+
+async function downloadManuscriptAsReviewer(path) {
+    try {
+        const { data, error } = await db.storage.from('manuscripts').createSignedUrl(path, 60);
+        if (error) throw error;
+        window.open(data.signedUrl, '_blank');
+    } catch (e) {
+        showToast('Error generating download link', 'error');
+    }
+}
+
+async function submitReview(e, submissionId) {
+    e.preventDefault();
+    try {
+        const recommendation = document.getElementById(`reviewRec_${submissionId}`).value;
+        const comments_to_editor = document.getElementById(`reviewEditorComments_${submissionId}`).value || null;
+        const comments_to_author = document.getElementById(`reviewAuthorComments_${submissionId}`).value || null;
+
+        const { error } = await db.from('reviews').insert({
+            submission_id: submissionId,
+            reviewer_id: currentUser.id,
+            recommendation,
+            comments_to_editor,
+            comments_to_author
+        });
+        if (error) throw error;
+
+        showToast('Review submitted — thank you!', 'success');
+        renderReviewerPage();
+    } catch (err) {
+        showToast(err.message || 'Error submitting review', 'error');
     }
 }
 
@@ -182,6 +311,13 @@ function renderSubmitPageAuthState() {
     const gate = document.getElementById('authGateContainer');
     const authed = document.getElementById('authedSubmitContainer');
     if (!gate || !authed) return; // not on the submit page yet
+
+    // Reviewers don't use the author submit flow at all — bounce them
+    // straight to their own dashboard.
+    if (currentUser && currentUserRole === 'reviewer') {
+        showPage('reviewer');
+        return;
+    }
 
     if (currentUser) {
         gate.style.display = 'none';
