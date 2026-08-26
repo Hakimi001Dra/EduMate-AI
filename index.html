@@ -42,13 +42,12 @@
     <div class="top-bar">
         <div class="inner">
             <span>📍 Faculty of Social Sciences, Kaduna State University — Kaduna, Nigeria</span>
-           <div class="links">
-    <a href="https://www.kasu.edu.ng" target="_blank" rel="noopener">KASU Main Site</a>
-    <a href="https://www.kasu.edu.ng/library" target="_blank" rel="noopener">E-Library</a>
-    <a href="mailto:sociology@kasu.edu.ng">Contact</a>
-    <a href="author.html" style="color: var(--kasu-gold); font-weight: 600;">Author Portal</a>
-    <a id="adminLink" href="admin.html" style="color: var(--kasu-gold); font-weight: 600;">Admin</a>
-</div>
+            <div class="links">
+                <a href="https://www.kasu.edu.ng" target="_blank" rel="noopener" id="kasuMainLink">KASU Main Site</a>
+                <a href="https://www.kasu.edu.ng/library" target="_blank" rel="noopener" id="eLibraryLink">E-Library</a>
+                <a href="mailto:sociology@kasu.edu.ng" id="contactLink">Contact</a>
+                <a id="adminLink" href="admin.html" style="color: var(--kasu-gold); font-weight: 600;">Admin</a>
+            </div>
         </div>
     </div>
 
@@ -479,6 +478,52 @@
                     </div>
 
                     <div style="background:white;border-radius:12px;padding:2rem;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:1.5rem;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                            <h2 style="font-family:'Playfair Display',serif;font-size:1.4rem;margin:0;">My Profile</h2>
+                            <button type="button" class="btn-outline-dark" id="editProfileToggleBtn" onclick="toggleProfileEdit()" style="padding:6px 16px;font-size:13px;">Edit Profile</button>
+                        </div>
+                        <div id="profileViewMode">
+                            <div style="display:flex;gap:1.25rem;align-items:center;">
+                                <div id="profileAvatarDisplay" style="width:64px;height:64px;border-radius:50%;background:var(--kasu-green);color:white;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:20px;overflow:hidden;flex-shrink:0;">—</div>
+                                <div>
+                                    <div id="profileNameDisplay" style="font-weight:600;font-size:16px;">Not set yet</div>
+                                    <div id="profileAffiliationDisplay" style="font-size:13.5px;color:var(--text-muted);"></div>
+                                    <div id="profileOrcidDisplay" style="font-size:12.5px;color:var(--kasu-green);"></div>
+                                </div>
+                            </div>
+                            <p id="profileBioDisplay" style="font-size:13.5px;color:var(--text-secondary);margin-top:0.75rem;"></p>
+                        </div>
+                        <form id="profileEditForm" onsubmit="saveMyProfile(event)" style="display:none;">
+                            <div class="form-group" style="margin-bottom:1rem;">
+                                <label style="display:block;font-weight:500;margin-bottom:4px;">Full Name *</label>
+                                <input type="text" id="profileFullName" required style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;">
+                            </div>
+                            <div class="form-group" style="margin-bottom:1rem;">
+                                <label style="display:block;font-weight:500;margin-bottom:4px;">Institutional Affiliation</label>
+                                <input type="text" id="profileAffiliation" placeholder="e.g. Department of Sociology, Kaduna State University" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;">
+                            </div>
+                            <div class="form-group" style="margin-bottom:1rem;">
+                                <label style="display:block;font-weight:500;margin-bottom:4px;">ORCID iD</label>
+                                <input type="text" id="profileOrcid" placeholder="e.g. 0000-0002-1825-0097" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;">
+                                <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">Don't have one? Register free at <a href="https://orcid.org/register" target="_blank" rel="noopener">orcid.org</a>.</p>
+                            </div>
+                            <div class="form-group" style="margin-bottom:1rem;">
+                                <label style="display:block;font-weight:500;margin-bottom:4px;">Short Bio</label>
+                                <textarea id="profileBio" rows="3" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;resize:vertical;"></textarea>
+                            </div>
+                            <div class="form-group" style="margin-bottom:1rem;">
+                                <label style="display:block;font-weight:500;margin-bottom:4px;">Profile Photo</label>
+                                <div id="avatarUploadContainer" style="color:#767676;font-size:13px;padding:0.75rem;border:1px dashed #D8D8D8;border-radius:6px;">Loading upload control…</div>
+                                <input type="hidden" id="profileAvatarUrl">
+                            </div>
+                            <div style="display:flex;gap:0.75rem;">
+                                <button type="submit" class="btn-primary">Save Profile</button>
+                                <button type="button" class="btn-outline-dark" onclick="toggleProfileEdit()">Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div style="background:white;border-radius:12px;padding:2rem;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:1.5rem;">
                         <h2 style="font-family:'Playfair Display',serif;font-size:1.4rem;margin-bottom:1rem;">My Submissions</h2>
                         <div id="mySubmissionsList"><div class="loading"><div class="loading-spinner"></div>Loading...</div></div>
                     </div>
@@ -533,6 +578,30 @@
         </section>
     </div>
 
+
+    <!-- ═══════════ PAGE: PUBLIC AUTHOR PROFILE ═══════════ -->
+    <div id="page-author" class="page-content">
+        <section class="section-padding section-alt">
+            <div class="container-custom" style="max-width:800px;">
+                <div style="background:white;border-radius:12px;padding:2rem;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:1.5rem;">
+                    <div style="display:flex;gap:1.5rem;align-items:center;flex-wrap:wrap;">
+                        <div id="authorPageAvatar" style="width:90px;height:90px;border-radius:50%;background:var(--kasu-green);color:white;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:28px;overflow:hidden;flex-shrink:0;">—</div>
+                        <div>
+                            <h1 id="authorPageName" style="font-family:'Playfair Display',serif;font-size:1.8rem;margin-bottom:2px;">Loading…</h1>
+                            <div id="authorPageAffiliation" style="color:var(--text-muted);font-size:14.5px;"></div>
+                            <div id="authorPageOrcid" style="font-size:13px;color:var(--kasu-green);margin-top:4px;"></div>
+                        </div>
+                    </div>
+                    <p id="authorPageBio" style="margin-top:1.25rem;color:var(--text-secondary);line-height:1.7;"></p>
+                </div>
+
+                <h2 style="font-family:'Playfair Display',serif;font-size:1.4rem;margin-bottom:1rem;">Published Articles</h2>
+                <div class="journal-grid" id="authorPageJournals">
+                    <div class="loading"><div class="loading-spinner"></div>Loading...</div>
+                </div>
+            </div>
+        </section>
+    </div>
 
     <!-- ═══════════ FOOTER ═══════════ -->
     <footer>
