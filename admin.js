@@ -50,6 +50,7 @@ function showAdminPage(page) {
     if (page === 'faculty') loadAdminFaculty();
     if (page === 'news') loadAdminNews();
     if (page === 'programmes') loadAdminProgrammes();
+    if (page === 'users') loadAdminUsers();
     if (page === 'settings') loadAdminSettings();
 }
 
@@ -151,6 +152,8 @@ async function loadAdminSubmissions() {
                     <button class="delete-btn" onclick="updateSubmissionStatus('${s.id}','rejected')">Reject</button>
                     <button class="edit-btn" onclick="resendSubmissionNotification('${s.id}')">🔔 Notify</button>
                     <button class="edit-btn" onclick="publishSubmissionToJournal('${s.id}')">📰 Publish</button>
+                    <button class="edit-btn" onclick="assignReviewer('${s.id}')">🧑‍🔬 Assign Reviewer</button>
+                    <button class="edit-btn" onclick="viewReviewsForSubmission('${s.id}')">📝 View Reviews</button>
                     <button class="delete-btn" onclick="deleteSubmission('${s.id}', ${s.manuscript_path ? `'${s.manuscript_path}'` : 'null'})">🗑️ Delete</button>
                 </div></td>
             </tr>`).join('')}</tbody></table>`;
@@ -273,6 +276,94 @@ async function deleteSubmission(id, manuscriptPath) {
         loadAdminDashboard();
     } catch (e) {
         showToast(e.message || 'Error deleting submission', 'error');
+    }
+}
+
+// ─── USERS & REVIEWERS ────────────────────────────────
+
+async function loadAdminUsers() {
+    try {
+        const { data, error } = await db.from('profiles').select('*').order('created_at', { ascending: false });
+        if (error) throw error;
+        const c = document.getElementById('adminUsersList');
+        if (!data || !data.length) { c.innerHTML = '<p style="text-align:center;padding:2rem;color:var(--text-muted);">No users yet.</p>'; return; }
+        c.innerHTML = `<table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Actions</th></tr></thead><tbody>${data.map(u => `
+            <tr>
+                <td>${u.full_name || '—'}</td>
+                <td>${u.email}</td>
+                <td><span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:100px;background:${u.role === 'admin' ? '#dc2626' : u.role === 'reviewer' ? '#c8941a' : '#767676'};color:#fff;">${u.role}</span></td>
+                <td><div class="actions">
+                    ${u.role !== 'reviewer' ? `<button class="edit-btn" onclick="updateUserRole('${u.id}','reviewer')">Make Reviewer</button>` : `<button class="edit-btn" onclick="updateUserRole('${u.id}','user')">Remove Reviewer Role</button>`}
+                </div></td>
+            </tr>`).join('')}</tbody></table>`;
+    } catch (e) { document.getElementById('adminUsersList').innerHTML = '<p style="color:red;">Error loading users</p>'; }
+}
+
+async function updateUserRole(userId, newRole) {
+    try {
+        const { error } = await db.from('profiles').update({ role: newRole }).eq('id', userId);
+        if (error) throw error;
+        showToast(`Role updated to ${newRole}`, 'success');
+        loadAdminUsers();
+    } catch (e) {
+        showToast(e.message || 'Error updating role', 'error');
+    }
+}
+
+// Assigns a reviewer (by email) to a submission. The reviewer must already
+// have the 'reviewer' role — promote them first under Users & Reviewers.
+async function assignReviewer(submissionId) {
+    try {
+        const email = prompt('Enter the reviewer\'s email address (they must already have the Reviewer role):');
+        if (!email) return;
+
+        const { data: profile, error: profErr } = await db.from('profiles').select('*').eq('email', email.trim()).single();
+        if (profErr || !profile) {
+            showToast('No account found with that email.', 'error');
+            return;
+        }
+        if (profile.role !== 'reviewer') {
+            showToast(`${email} is not a Reviewer yet. Promote them first under Users & Reviewers.`, 'error');
+            return;
+        }
+
+        const { error } = await db.from('submission_reviewers').insert({
+            submission_id: submissionId,
+            reviewer_id: profile.id
+        });
+        if (error) {
+            if (error.code === '23505') {
+                showToast('That reviewer is already assigned to this submission.', 'error');
+            } else {
+                throw error;
+            }
+            return;
+        }
+        showToast(`Assigned ${email} as reviewer.`, 'success');
+    } catch (e) {
+        showToast(e.message || 'Error assigning reviewer', 'error');
+    }
+}
+
+// Shows all reviews submitted for a submission, so the admin can weigh
+// them before making a final Accept/Reject decision.
+async function viewReviewsForSubmission(submissionId) {
+    try {
+        const { data, error } = await db.from('reviews').select('*').eq('submission_id', submissionId).order('created_at', { ascending: false });
+        if (error) throw error;
+
+        if (!data || !data.length) {
+            alert('No reviews submitted yet for this manuscript.');
+            return;
+        }
+
+        const summary = data.map((r, i) =>
+            `Review ${i + 1}\nRecommendation: ${r.recommendation}\nComments to editor: ${r.comments_to_editor || '—'}\nComments to author: ${r.comments_to_author || '—'}\n`
+        ).join('\n---\n');
+
+        alert(summary);
+    } catch (e) {
+        showToast(e.message || 'Error loading reviews', 'error');
     }
 }
 
