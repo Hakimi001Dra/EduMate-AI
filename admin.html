@@ -46,6 +46,7 @@
                     <a onclick="showAdminPage('faculty')" data-admin="faculty">👨‍🏫 Faculty</a>
                     <a onclick="showAdminPage('news')" data-admin="news">📰 News</a>
                     <a onclick="showAdminPage('programmes')" data-admin="programmes">🎓 Programmes</a>
+                    <a onclick="showAdminPage('users')" data-admin="users">👤 Users & Reviewers</a>
                     <a onclick="showAdminPage('settings')" data-admin="settings">⚙️ Settings</a>
                 </nav>
                 <button class="logout-btn" onclick="adminLogout()">🚪 Logout</button>
@@ -253,6 +254,13 @@
                             </form>
                         </div>
                     </div>
+                </div>
+
+                <!-- Admin Users & Reviewers -->
+                <div id="admin-users" style="display:none;">
+                    <h1>Users & Reviewers</h1>
+                    <p style="color:var(--text-muted);font-size:14px;margin-bottom:1.25rem;">Promote an author to Reviewer so they can be assigned manuscripts to review. Only promote people you trust to review blind — reviewers can read manuscript content, but never see author names or emails.</p>
+                    <div id="adminUsersList" class="admin-table"><div class="loading"><div class="loading-spinner"></div>Loading...</div></div>
                 </div>
 
                 <!-- Admin Settings -->
