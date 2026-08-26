@@ -188,6 +188,7 @@ function renderSubmitPageAuthState() {
         authed.style.display = 'block';
         const emailEl = document.getElementById('authedUserEmail');
         if (emailEl) emailEl.textContent = currentUser.email;
+        loadMyProfile();
         loadMySubmissions();
     } else {
         gate.style.display = 'block';
@@ -238,6 +239,138 @@ async function loadMySubmissions() {
     } catch (e) {
         console.error('Error loading my submissions:', e);
         container.innerHTML = '<p style="color:#dc2626;font-size:14px;">Could not load your submissions. Please refresh.</p>';
+    }
+}
+
+// ─── MY PROFILE (edit + display) ─────────────────────
+
+function toggleProfileEdit() {
+    const viewMode = document.getElementById('profileViewMode');
+    const editForm = document.getElementById('profileEditForm');
+    const isEditing = editForm.style.display !== 'none';
+    if (isEditing) {
+        editForm.style.display = 'none';
+        viewMode.style.display = 'block';
+    } else {
+        viewMode.style.display = 'none';
+        editForm.style.display = 'block';
+    }
+}
+
+function initialsFromName(name) {
+    if (!name) return '?';
+    return name.split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase();
+}
+
+// Loads the logged-in user's profile row and populates both the
+// read-only display and the edit form.
+async function loadMyProfile() {
+    if (!currentUser) return;
+    try {
+        const { data, error } = await db.from('profiles').select('*').eq('id', currentUser.id).single();
+        if (error) throw error;
+
+        const nameEl = document.getElementById('profileNameDisplay');
+        const affEl = document.getElementById('profileAffiliationDisplay');
+        const orcidEl = document.getElementById('profileOrcidDisplay');
+        const bioEl = document.getElementById('profileBioDisplay');
+        const avatarEl = document.getElementById('profileAvatarDisplay');
+
+        if (nameEl) nameEl.textContent = data.full_name || 'Add your name — click Edit Profile';
+        if (affEl) affEl.textContent = data.affiliation || '';
+        if (orcidEl) orcidEl.textContent = data.orcid ? `ORCID: ${data.orcid}` : '';
+        if (bioEl) bioEl.textContent = data.bio || '';
+        if (avatarEl) {
+            avatarEl.innerHTML = data.avatar_url
+                ? `<img src="${data.avatar_url}" alt="${data.full_name || ''}" style="width:100%;height:100%;object-fit:cover;">`
+                : initialsFromName(data.full_name || currentUser.email);
+        }
+
+        // Pre-fill the edit form too
+        const fullNameInput = document.getElementById('profileFullName');
+        const affInput = document.getElementById('profileAffiliation');
+        const orcidInput = document.getElementById('profileOrcid');
+        const bioInput = document.getElementById('profileBio');
+        const avatarUrlInput = document.getElementById('profileAvatarUrl');
+        if (fullNameInput) fullNameInput.value = data.full_name || '';
+        if (affInput) affInput.value = data.affiliation || '';
+        if (orcidInput) orcidInput.value = data.orcid || '';
+        if (bioInput) bioInput.value = data.bio || '';
+        if (avatarUrlInput) avatarUrlInput.value = data.avatar_url || '';
+
+        // Pre-fill the "Author Name" field on the submission form too,
+        // so returning authors don't have to retype it every time.
+        const subAuthorField = document.getElementById('subAuthorFull');
+        if (subAuthorField && !subAuthorField.value && data.full_name) {
+            subAuthorField.value = data.full_name;
+        }
+    } catch (e) {
+        console.error('Error loading profile:', e);
+    }
+}
+
+async function saveMyProfile(e) {
+    e.preventDefault();
+    if (!currentUser) return;
+    try {
+        const updates = {
+            full_name: document.getElementById('profileFullName').value,
+            affiliation: document.getElementById('profileAffiliation').value || null,
+            orcid: document.getElementById('profileOrcid').value || null,
+            bio: document.getElementById('profileBio').value || null,
+            avatar_url: document.getElementById('profileAvatarUrl').value || null,
+        };
+        const { error } = await db.from('profiles').update(updates).eq('id', currentUser.id);
+        if (error) throw error;
+        showToast('Profile saved!', 'success');
+        toggleProfileEdit();
+        loadMyProfile();
+    } catch (err) {
+        showToast(err.message || 'Error saving profile', 'error');
+    }
+}
+
+// ─── PUBLIC AUTHOR PAGE ───────────────────────────────
+// Shows a public profile (name, affiliation, bio, ORCID) plus every
+// published journal article linked to that author, via the
+// author_public_profiles view (which deliberately excludes email).
+async function showAuthorPage(authorId) {
+    showPage('author');
+    const nameEl = document.getElementById('authorPageName');
+    const affEl = document.getElementById('authorPageAffiliation');
+    const orcidEl = document.getElementById('authorPageOrcid');
+    const bioEl = document.getElementById('authorPageBio');
+    const avatarEl = document.getElementById('authorPageAvatar');
+    const journalsEl = document.getElementById('authorPageJournals');
+
+    if (nameEl) nameEl.textContent = 'Loading…';
+    if (journalsEl) journalsEl.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Loading...</div>';
+
+    try {
+        const [{ data: profile, error: profErr }, { data: journals, error: jErr }] = await Promise.all([
+            db.from('author_public_profiles').select('*').eq('id', authorId).single(),
+            db.from('journals').select('*').eq('submitter_id', authorId).order('year', { ascending: false })
+        ]);
+        if (profErr) throw profErr;
+
+        if (nameEl) nameEl.textContent = profile.full_name || 'Author';
+        if (affEl) affEl.textContent = profile.affiliation || '';
+        if (orcidEl) orcidEl.textContent = profile.orcid ? `ORCID: ${profile.orcid}` : '';
+        if (bioEl) bioEl.textContent = profile.bio || '';
+        if (avatarEl) {
+            avatarEl.innerHTML = profile.avatar_url
+                ? `<img src="${profile.avatar_url}" alt="${profile.full_name || ''}" style="width:100%;height:100%;object-fit:cover;">`
+                : initialsFromName(profile.full_name);
+        }
+
+        if (jErr) throw jErr;
+        journalsEl.innerHTML = (journals && journals.length)
+            ? journals.map(renderJournalCard).join('')
+            : '<p style="text-align:center;color:var(--text-muted);padding:2rem;">No published articles yet.</p>';
+    } catch (e) {
+        console.error('Error loading author page:', e);
+        if (nameEl) nameEl.textContent = 'Author not found';
+        if (journalsEl) journalsEl.innerHTML = '';
     }
 }
 
@@ -432,13 +565,19 @@ function renderJournalCard(a) {
     const tags = a.tags || [];
     const fileLabel = a.pdf_url && /\.(doc|docx)(\?|$)/i.test(a.pdf_url) ? '📄 File' : '📄 PDF';
     const pdfLink = a.pdf_url ? `<a href="${a.pdf_url}" target="_blank" style="font-size:11px;color:var(--kasu-green);">${fileLabel}</a>` : '';
+    // If this journal entry has a linked submitter (i.e. it was published via
+    // the author-account submission flow), make the byline clickable through
+    // to that author's public profile page.
+    const authorsHtml = a.submitter_id
+        ? `<a onclick="showAuthorPage('${a.submitter_id}')" style="cursor:pointer;text-decoration:underline;">${a.authors}</a>`
+        : a.authors;
     return `<div class="journal-card">
         <div class="journal-meta">
             <span class="journal-vol">Vol. ${a.volume} · ${a.year}</span>
             <span class="journal-year">${formatDate(a.published_date)}</span>
         </div>
         <h3>${a.title}</h3>
-        <div class="authors">${a.authors}</div>
+        <div class="authors">${authorsHtml}</div>
         <p class="journal-abstract">${a.abstract}</p>
         <div class="journal-card-footer">
             <div class="badge-area">${tags.slice(0,2).map(t => `<span class="badge ${getBadgeColor(t)}">${t}</span>`).join('')}</div>
