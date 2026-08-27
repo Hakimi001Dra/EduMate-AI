@@ -104,17 +104,13 @@ function switchAuthTab(tab) {
     if (tab === 'login') {
         loginForm.style.display = 'block';
         registerForm.style.display = 'none';
-        loginBtn.style.color = 'var(--kasu-green)';
-        loginBtn.style.borderBottom = '2px solid var(--kasu-green)';
-        registerBtn.style.color = 'var(--text-muted)';
-        registerBtn.style.borderBottom = 'none';
+        loginBtn.classList.add('active');
+        registerBtn.classList.remove('active');
     } else {
         loginForm.style.display = 'none';
         registerForm.style.display = 'block';
-        registerBtn.style.color = 'var(--kasu-green)';
-        registerBtn.style.borderBottom = '2px solid var(--kasu-green)';
-        loginBtn.style.color = 'var(--text-muted)';
-        loginBtn.style.borderBottom = 'none';
+        registerBtn.classList.add('active');
+        loginBtn.classList.remove('active');
     }
 }
 
@@ -259,20 +255,20 @@ async function renderReviewerPage() {
         container.innerHTML = data.map(s => {
             const alreadyReviewed = reviewedIds.has(s.id);
             return `
-            <div style="background:white;border-radius:12px;padding:1.5rem 2rem;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:1.25rem;">
-                <h3 style="font-family:'Playfair Display',serif;font-size:1.2rem;margin-bottom:0.5rem;">${s.title}</h3>
-                <div style="font-size:12.5px;color:var(--text-muted);margin-bottom:0.75rem;">${s.research_area || ''} · Submitted ${formatDate(s.created_at)}</div>
-                <p style="font-size:14px;color:var(--text-secondary);line-height:1.7;margin-bottom:0.75rem;"><strong>Abstract:</strong> ${s.abstract}</p>
-                <p style="font-size:13px;color:var(--text-muted);margin-bottom:0.75rem;"><strong>Keywords:</strong> ${s.keywords || '—'}</p>
-                <p style="font-size:13px;color:var(--text-muted);margin-bottom:1rem;"><strong>AI Tool Disclosure:</strong> ${s.ai_tools_disclosure || 'None stated'}</p>
-                ${s.manuscript_path ? `<button type="button" class="btn-outline-dark" style="font-size:12px;padding:6px 14px;margin-bottom:1rem;" onclick="downloadManuscriptAsReviewer('${s.manuscript_path}')">📄 Download Manuscript</button>` : ''}
+            <div class="assignment-card">
+                <h3>${s.title}</h3>
+                <div class="assignment-meta">${s.research_area || ''} · Submitted ${formatDate(s.created_at)}</div>
+                <p class="assignment-field"><strong>Abstract:</strong> ${s.abstract}</p>
+                <p class="assignment-field"><strong>Keywords:</strong> ${s.keywords || '—'}</p>
+                <p class="assignment-field"><strong>AI Tool Disclosure:</strong> ${s.ai_tools_disclosure || 'None stated'}</p>
+                ${s.manuscript_path ? `<button type="button" class="btn-outline-dark" style="font-size:12px;padding:6px 14px;margin-bottom:0.5rem;" onclick="downloadManuscriptAsReviewer('${s.manuscript_path}')">📄 Download Manuscript</button>` : ''}
 
                 ${alreadyReviewed
-                    ? `<div style="background:#f0fdf4;border:1px solid #bbf7d0;color:#16a34a;font-size:13px;padding:0.75rem 1rem;border-radius:6px;">✅ You've already submitted your review for this manuscript.</div>`
-                    : `<form onsubmit="submitReview(event, '${s.id}')" style="border-top:1px solid var(--border);padding-top:1rem;margin-top:0.5rem;">
-                        <div class="form-group" style="margin-bottom:0.75rem;">
-                            <label style="display:block;font-weight:500;margin-bottom:4px;font-size:13.5px;">Recommendation *</label>
-                            <select required id="reviewRec_${s.id}" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:6px;">
+                    ? `<div class="review-complete-banner" style="margin-top:1rem;">✅ You've already submitted your review for this manuscript.</div>`
+                    : `<form onsubmit="submitReview(event, '${s.id}')" class="review-form">
+                        <div class="field-group">
+                            <label>Recommendation *</label>
+                            <select required id="reviewRec_${s.id}">
                                 <option value="">Select…</option>
                                 <option value="accept">Accept</option>
                                 <option value="minor_revisions">Minor Revisions</option>
@@ -280,13 +276,13 @@ async function renderReviewerPage() {
                                 <option value="reject">Reject</option>
                             </select>
                         </div>
-                        <div class="form-group" style="margin-bottom:0.75rem;">
-                            <label style="display:block;font-weight:500;margin-bottom:4px;font-size:13.5px;">Comments to Editor (confidential)</label>
-                            <textarea id="reviewEditorComments_${s.id}" rows="2" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:6px;resize:vertical;"></textarea>
+                        <div class="field-group">
+                            <label>Comments to Editor (confidential)</label>
+                            <textarea id="reviewEditorComments_${s.id}" rows="2"></textarea>
                         </div>
-                        <div class="form-group" style="margin-bottom:0.75rem;">
-                            <label style="display:block;font-weight:500;margin-bottom:4px;font-size:13.5px;">Comments to Author</label>
-                            <textarea id="reviewAuthorComments_${s.id}" rows="2" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:6px;resize:vertical;"></textarea>
+                        <div class="field-group">
+                            <label>Comments to Author</label>
+                            <textarea id="reviewAuthorComments_${s.id}" rows="2"></textarea>
                         </div>
                         <button type="submit" class="btn-primary" style="font-size:13px;padding:8px 18px;">Submit Review</button>
                     </form>`
@@ -410,12 +406,6 @@ async function loadMySubmissions() {
             return;
         }
 
-        const statusColors = {
-            pending: '#767676',
-            in_review: '#c8941a',
-            accepted: '#16a34a',
-            rejected: '#dc2626'
-        };
         const statusLabels = {
             pending: 'Pending Review',
             in_review: 'In Review',
@@ -424,12 +414,12 @@ async function loadMySubmissions() {
         };
 
         container.innerHTML = data.map(s => `
-            <div style="border:1px solid var(--border);border-radius:8px;padding:1rem 1.25rem;margin-bottom:0.75rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;">
+            <div class="submission-item">
                 <div>
-                    <div style="font-weight:600;font-size:14.5px;">${s.title}</div>
-                    <div style="font-size:12.5px;color:var(--text-muted);">Submitted ${formatDate(s.created_at)}${s.research_area ? ' · ' + s.research_area : ''}</div>
+                    <div class="title">${s.title}</div>
+                    <div class="meta">Submitted ${formatDate(s.created_at)}${s.research_area ? ' · ' + s.research_area : ''}</div>
                 </div>
-                <span style="font-size:12px;font-weight:600;padding:4px 12px;border-radius:100px;color:#fff;background:${statusColors[s.status] || '#767676'};">${statusLabels[s.status] || s.status}</span>
+                <span class="status-pill status-${s.status}">${statusLabels[s.status] || s.status}</span>
             </div>
         `).join('');
     } catch (e) {
@@ -462,10 +452,10 @@ function initialsFromName(name) {
 // the "transcript line" signature element shared by author and
 // reviewer profile cards.
 function renderStatStrip(cells) {
-    return cells.map((c, i) => `
-        <div style="flex:1;text-align:center;${i > 0 ? 'border-left:1px solid var(--border);' : ''}">
-            <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:600;color:var(--kasu-green);">${c.value}</div>
-            <div style="font-size:10.5px;letter-spacing:0.05em;color:var(--text-muted);text-transform:uppercase;margin-top:2px;">${c.label}</div>
+    return cells.map(c => `
+        <div class="stat-cell">
+            <div class="stat-value">${c.value}</div>
+            <div class="stat-label">${c.label}</div>
         </div>
     `).join('');
 }
