@@ -180,11 +180,11 @@ async function loadAdminActivityLog() {
             return;
         }
         const actionIcons = { status_change: '🔄', assign_reviewer: '🧑‍🔬', publish: '📰' };
-        c.innerHTML = `<div style="background:white;border-radius:8px;overflow:hidden;">${data.map(a => `
-            <div style="padding:0.75rem 1.25rem;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center;font-size:13.5px;">
-                <span>${actionIcons[a.action] || '•'}</span>
-                <span style="flex:1;color:var(--text-secondary);">${a.detail || a.action}</span>
-                <span style="font-size:11.5px;color:var(--text-muted);white-space:nowrap;">${new Date(a.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+        c.innerHTML = `<div class="activity-log-list">${data.map(a => `
+            <div class="activity-log-item">
+                <span class="icon">${actionIcons[a.action] || '•'}</span>
+                <span class="desc">${a.detail || a.action}</span>
+                <span class="when">${new Date(a.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
             </div>
         `).join('')}</div>`;
     } catch (e) {
