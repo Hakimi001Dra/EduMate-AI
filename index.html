@@ -431,94 +431,88 @@
                 </div>
 
                 <!-- ─── AUTH GATE: shown when nobody is logged in ─── -->
-                <div id="authGateContainer" style="background:white;border-radius:12px;padding:2rem;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
-                    <div style="display:flex;gap:0;margin-bottom:1.5rem;border-bottom:2px solid var(--border);">
-                        <button type="button" id="authTabLoginBtn" onclick="switchAuthTab('login')" style="flex:1;padding:0.75rem;border:none;background:none;cursor:pointer;font-weight:600;font-size:15px;border-bottom:2px solid var(--kasu-green);margin-bottom:-2px;color:var(--kasu-green);">Log In</button>
-                        <button type="button" id="authTabRegisterBtn" onclick="switchAuthTab('register')" style="flex:1;padding:0.75rem;border:none;background:none;cursor:pointer;font-weight:600;font-size:15px;color:var(--text-muted);">Create Account</button>
+                <div id="authGateContainer" class="auth-card">
+                    <div class="auth-tabs">
+                        <button type="button" id="authTabLoginBtn" onclick="switchAuthTab('login')" class="auth-tab-btn active">Log In</button>
+                        <button type="button" id="authTabRegisterBtn" onclick="switchAuthTab('register')" class="auth-tab-btn">Create Account</button>
                     </div>
 
                     <form id="authLoginForm" onsubmit="authLogin(event)">
-                        <div class="form-group" style="margin-bottom:1rem;">
-                            <label style="display:block;font-weight:500;margin-bottom:4px;">Email</label>
-                            <input type="email" id="loginEmail" required style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;">
+                        <div class="field-group">
+                            <label>Email</label>
+                            <input type="email" id="loginEmail" required>
                         </div>
-                        <div class="form-group" style="margin-bottom:1rem;">
-                            <label style="display:block;font-weight:500;margin-bottom:4px;">Password</label>
-                            <input type="password" id="loginPassword" required style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;">
+                        <div class="field-group">
+                            <label>Password</label>
+                            <input type="password" id="loginPassword" required>
                         </div>
-                        <div id="authLoginError" style="color:#dc2626;font-size:14px;margin-bottom:1rem;display:none;"></div>
-                        <button type="submit" class="btn-primary" style="width:100%;">Log In</button>
+                        <div id="authLoginError" class="auth-alert error" style="display:none;"></div>
+                        <button type="submit" class="btn-primary">Log In</button>
                     </form>
 
                     <form id="authRegisterForm" onsubmit="authRegister(event)" style="display:none;">
-                        <div class="form-group" style="margin-bottom:1rem;">
-                            <label style="display:block;font-weight:500;margin-bottom:4px;">Full Name</label>
-                            <input type="text" id="registerName" required style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;">
+                        <div class="field-group">
+                            <label>Full Name</label>
+                            <input type="text" id="registerName" required>
                         </div>
-                        <div class="form-group" style="margin-bottom:1rem;">
-                            <label style="display:block;font-weight:500;margin-bottom:4px;">Email</label>
-                            <input type="email" id="registerEmail" required style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;">
+                        <div class="field-group">
+                            <label>Email</label>
+                            <input type="email" id="registerEmail" required>
                         </div>
-                        <div class="form-group" style="margin-bottom:1rem;">
-                            <label style="display:block;font-weight:500;margin-bottom:4px;">Password (min. 6 characters)</label>
-                            <input type="password" id="registerPassword" minlength="6" required style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;">
+                        <div class="field-group">
+                            <label>Password (min. 6 characters)</label>
+                            <input type="password" id="registerPassword" minlength="6" required>
                         </div>
-                        <div id="authRegisterError" style="color:#dc2626;font-size:14px;margin-bottom:1rem;display:none;"></div>
-                        <div id="authRegisterSuccess" style="color:#16a34a;font-size:14px;margin-bottom:1rem;display:none;"></div>
-                        <button type="submit" class="btn-primary" style="width:100%;">Create Account</button>
+                        <div id="authRegisterError" class="auth-alert error" style="display:none;"></div>
+                        <div id="authRegisterSuccess" class="auth-alert success" style="display:none;"></div>
+                        <button type="submit" class="btn-primary">Create Account</button>
                     </form>
                 </div>
 
                 <!-- ─── AUTHENTICATED AREA: shown once logged in ─── -->
                 <div id="authedSubmitContainer" style="display:none;">
 
-                    <div style="background:white;border-radius:12px;padding:1.25rem 2rem;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:1.5rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;">
-                        <span style="font-size:14px;color:var(--text-secondary);">Logged in as <strong id="authedUserEmail"></strong></span>
-                        <button type="button" class="btn-outline-dark" onclick="authLogout()" style="padding:6px 16px;font-size:13px;">Log Out</button>
-                    </div>
-
-                    <div style="background:white;border-radius:12px;padding:2rem;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:1.5rem;">
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-                            <h2 style="font-family:'Playfair Display',serif;font-size:1.4rem;margin:0;">My Profile</h2>
-                            <button type="button" class="btn-outline-dark" id="editProfileToggleBtn" onclick="toggleProfileEdit()" style="padding:6px 16px;font-size:13px;">Edit Profile</button>
-                        </div>
-                        <div id="profileViewMode">
-                            <div style="display:flex;gap:1.5rem;align-items:center;flex-wrap:wrap;">
-                                <div id="profileAvatarDisplay" style="width:76px;height:76px;border-radius:50%;background:var(--kasu-green);color:white;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:22px;overflow:hidden;flex-shrink:0;border:3px solid var(--kasu-green);box-shadow:0 0 0 3px rgba(26,71,49,0.12);">—</div>
-                                <div style="flex:1;min-width:200px;">
-                                    <div id="profileNameDisplay" style="font-family:'Playfair Display',serif;font-weight:600;font-size:19px;color:#1a1a1a;">Not set yet</div>
-                                    <div style="display:flex;align-items:center;gap:8px;margin:4px 0 6px;flex-wrap:wrap;">
-                                        <span style="font-size:10.5px;font-weight:700;letter-spacing:0.08em;color:var(--kasu-green);background:rgba(26,71,49,0.08);padding:3px 10px;border-radius:100px;">AUTHOR</span>
-                                        <span id="profileOrcidDisplay" style="font-size:12px;color:var(--text-muted);"></span>
-                                    </div>
-                                    <div id="profileAffiliationDisplay" style="font-size:13.5px;color:var(--text-secondary);"></div>
+                    <div class="credential-card">
+                        <div class="credential-top">
+                            <div class="credential-identity">
+                                <div id="profileAvatarDisplay" class="credential-seal">—</div>
+                                <div>
+                                    <div id="profileNameDisplay" class="credential-name">Not set yet</div>
+                                    <span class="role-plaque">AUTHOR</span>
+                                    <span id="profileOrcidDisplay" class="credential-meta"></span>
+                                    <div id="profileAffiliationDisplay" class="credential-meta"></div>
                                 </div>
                             </div>
-                            <p id="profileBioDisplay" style="font-size:13.5px;color:var(--text-secondary);margin-top:1rem;line-height:1.6;"></p>
-                            <div id="profileStatStrip" style="display:flex;margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--border);gap:0;">
-                                <!-- filled by JS: stat cells with dividers -->
+                            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                                <span class="credential-meta">Logged in as <strong id="authedUserEmail"></strong></span>
+                                <button type="button" class="btn-outline-dark" id="editProfileToggleBtn" onclick="toggleProfileEdit()" style="padding:6px 16px;font-size:13px;">Edit Profile</button>
+                                <button type="button" class="btn-outline-dark" onclick="authLogout()" style="padding:6px 16px;font-size:13px;">Log Out</button>
                             </div>
                         </div>
-                        <form id="profileEditForm" onsubmit="saveMyProfile(event)" style="display:none;">
-                            <div class="form-group" style="margin-bottom:1rem;">
-                                <label style="display:block;font-weight:500;margin-bottom:4px;">Full Name *</label>
-                                <input type="text" id="profileFullName" required style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;">
+                        <div id="profileViewMode">
+                            <p id="profileBioDisplay" class="profile-bio"></p>
+                            <div id="profileStatStrip" class="stat-strip"></div>
+                        </div>
+                        <form id="profileEditForm" onsubmit="saveMyProfile(event)" style="display:none;margin-top:1.25rem;">
+                            <div class="field-group">
+                                <label>Full Name *</label>
+                                <input type="text" id="profileFullName" required>
                             </div>
-                            <div class="form-group" style="margin-bottom:1rem;">
-                                <label style="display:block;font-weight:500;margin-bottom:4px;">Institutional Affiliation</label>
-                                <input type="text" id="profileAffiliation" placeholder="e.g. Department of Sociology, Kaduna State University" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;">
+                            <div class="field-group">
+                                <label>Institutional Affiliation</label>
+                                <input type="text" id="profileAffiliation" placeholder="e.g. Department of Sociology, Kaduna State University">
                             </div>
-                            <div class="form-group" style="margin-bottom:1rem;">
-                                <label style="display:block;font-weight:500;margin-bottom:4px;">ORCID iD</label>
-                                <input type="text" id="profileOrcid" placeholder="e.g. 0000-0002-1825-0097" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;">
-                                <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">Don't have one? Register free at <a href="https://orcid.org/register" target="_blank" rel="noopener">orcid.org</a>.</p>
+                            <div class="field-group">
+                                <label>ORCID iD</label>
+                                <input type="text" id="profileOrcid" placeholder="e.g. 0000-0002-1825-0097">
+                                <p class="field-hint">Don't have one? Register free at <a href="https://orcid.org/register" target="_blank" rel="noopener">orcid.org</a>.</p>
                             </div>
-                            <div class="form-group" style="margin-bottom:1rem;">
-                                <label style="display:block;font-weight:500;margin-bottom:4px;">Short Bio</label>
-                                <textarea id="profileBio" rows="3" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;resize:vertical;"></textarea>
+                            <div class="field-group">
+                                <label>Short Bio</label>
+                                <textarea id="profileBio" rows="3"></textarea>
                             </div>
-                            <div class="form-group" style="margin-bottom:1rem;">
-                                <label style="display:block;font-weight:500;margin-bottom:4px;">Profile Photo</label>
+                            <div class="field-group">
+                                <label>Profile Photo</label>
                                 <div id="avatarUploadContainer" style="color:#767676;font-size:13px;padding:0.75rem;border:1px dashed #D8D8D8;border-radius:6px;">Loading upload control…</div>
                                 <input type="hidden" id="profileAvatarUrl">
                             </div>
@@ -529,25 +523,25 @@
                         </form>
                     </div>
 
-                    <div style="background:white;border-radius:12px;padding:2rem;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:1.5rem;">
-                        <h2 style="font-family:'Playfair Display',serif;font-size:1.4rem;margin-bottom:1rem;">My Submissions</h2>
+                    <div class="dashboard-card">
+                        <div class="dashboard-card-header"><h2>My Submissions</h2></div>
                         <div id="mySubmissionsList"><div class="loading"><div class="loading-spinner"></div>Loading...</div></div>
                     </div>
 
-                    <div style="background:white;border-radius:12px;padding:2rem;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
-                        <h2 style="font-family:'Playfair Display',serif;font-size:1.8rem;margin-bottom:1.5rem;">New Manuscript Submission</h2>
+                    <div class="dashboard-card">
+                        <div class="dashboard-card-header"><h2>New Manuscript Submission</h2></div>
                         <form id="submissionFormFull" onsubmit="submitPaper(event)">
-                            <div class="form-group" style="margin-bottom:1rem;">
-                                <label style="display:block;font-weight:500;margin-bottom:4px;">Author Name(s) *</label>
-                                <input type="text" id="subAuthorFull" required style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;">
+                            <div class="field-group">
+                                <label>Author Name(s) *</label>
+                                <input type="text" id="subAuthorFull" required>
                             </div>
-                            <div class="form-group" style="margin-bottom:1rem;">
-                                <label style="display:block;font-weight:500;margin-bottom:4px;">Title *</label>
-                                <input type="text" id="subTitleFull" required style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;">
+                            <div class="field-group">
+                                <label>Title *</label>
+                                <input type="text" id="subTitleFull" required>
                             </div>
-                            <div class="form-group" style="margin-bottom:1rem;">
-                                <label style="display:block;font-weight:500;margin-bottom:4px;">Research Area</label>
-                                <select id="subAreaFull" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;">
+                            <div class="field-group">
+                                <label>Research Area</label>
+                                <select id="subAreaFull">
                                     <option>Urban Sociology</option>
                                     <option>Gender & Society</option>
                                     <option>Political Sociology</option>
@@ -557,21 +551,21 @@
                                     <option>Criminology</option>
                                 </select>
                             </div>
-                            <div class="form-group" style="margin-bottom:1rem;">
-                                <label style="display:block;font-weight:500;margin-bottom:4px;">Abstract * (max 250 words)</label>
-                                <textarea id="subAbstractFull" rows="4" required style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;resize:vertical;" oninput="updateWordCount('subAbstractFull','fullAbstractCount',250)"></textarea>
-                                <span id="fullAbstractCount" style="font-size:11px;color:var(--text-muted);">0/250 words</span>
+                            <div class="field-group">
+                                <label>Abstract * (max 250 words)</label>
+                                <textarea id="subAbstractFull" rows="4" required oninput="updateWordCount('subAbstractFull','fullAbstractCount',250)"></textarea>
+                                <span id="fullAbstractCount" class="field-hint">0/250 words</span>
                             </div>
-                            <div class="form-group" style="margin-bottom:1rem;">
-                                <label style="display:block;font-weight:500;margin-bottom:4px;">Keywords (exactly 5, comma separated) *</label>
-                                <input type="text" id="subKeywordsFull" required placeholder="e.g. urbanisation, poverty, youth, policy, Kaduna" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;">
+                            <div class="field-group">
+                                <label>Keywords (exactly 5, comma separated) *</label>
+                                <input type="text" id="subKeywordsFull" required placeholder="e.g. urbanisation, poverty, youth, policy, Kaduna">
                             </div>
-                            <div class="form-group" style="margin-bottom:1rem;">
-                                <label style="display:block;font-weight:500;margin-bottom:4px;">AI Tool Usage Disclosure</label>
-                                <textarea id="subAiToolsFull" rows="2" placeholder="Describe any AI tools used in preparing this manuscript, or write 'None'." style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;resize:vertical;"></textarea>
+                            <div class="field-group">
+                                <label>AI Tool Usage Disclosure</label>
+                                <textarea id="subAiToolsFull" rows="2" placeholder="Describe any AI tools used in preparing this manuscript, or write 'None'."></textarea>
                             </div>
-                            <div class="form-group" style="margin-bottom:1rem;">
-                                <label style="display:block;font-weight:500;margin-bottom:4px;">Manuscript File (PDF or Word, max 20MB) — remove author details for blind review</label>
+                            <div class="field-group">
+                                <label>Manuscript File (PDF or Word, max 20MB) — remove author details for blind review</label>
                                 <div id="fullManuscriptUploadContainer" style="color:#767676;font-size:13px;padding:0.75rem;border:1px dashed #D8D8D8;border-radius:6px;">Loading upload control…</div>
                                 <input type="hidden" id="subManuscriptPathFull">
                                 <input type="hidden" id="subManuscriptNameFull">
@@ -589,16 +583,16 @@
     <div id="page-author" class="page-content">
         <section class="section-padding section-alt">
             <div class="container-custom" style="max-width:800px;">
-                <div style="background:white;border-radius:12px;padding:2rem;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:1.5rem;">
-                    <div style="display:flex;gap:1.5rem;align-items:center;flex-wrap:wrap;">
-                        <div id="authorPageAvatar" style="width:90px;height:90px;border-radius:50%;background:var(--kasu-green);color:white;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:28px;overflow:hidden;flex-shrink:0;">—</div>
+                <div class="author-page-header">
+                    <div class="credential-identity">
+                        <div id="authorPageAvatar" class="credential-seal" style="width:90px;height:90px;font-size:28px;">—</div>
                         <div>
                             <h1 id="authorPageName" style="font-family:'Playfair Display',serif;font-size:1.8rem;margin-bottom:2px;">Loading…</h1>
-                            <div id="authorPageAffiliation" style="color:var(--text-muted);font-size:14.5px;"></div>
-                            <div id="authorPageOrcid" style="font-size:13px;color:var(--kasu-green);margin-top:4px;"></div>
+                            <div id="authorPageAffiliation" class="credential-meta"></div>
+                            <div id="authorPageOrcid" class="credential-meta" style="color:var(--kasu-green);margin-top:4px;"></div>
                         </div>
                     </div>
-                    <p id="authorPageBio" style="margin-top:1.25rem;color:var(--text-secondary);line-height:1.7;"></p>
+                    <p id="authorPageBio" class="profile-bio"></p>
                 </div>
 
                 <h2 style="font-family:'Playfair Display',serif;font-size:1.4rem;margin-bottom:1rem;">Published Articles</h2>
@@ -619,20 +613,20 @@
         </div>
         <section class="section-padding section-alt">
             <div class="container-custom" style="max-width:800px;">
-                <div style="background:white;border-radius:12px;padding:1.5rem 2rem;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:1.5rem;">
-                    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;">
-                        <div style="display:flex;gap:1.25rem;align-items:center;flex-wrap:wrap;">
-                            <div id="reviewerAvatarDisplay" style="width:64px;height:64px;border-radius:50%;background:var(--kasu-gold);color:white;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:20px;overflow:hidden;flex-shrink:0;border:3px solid var(--kasu-gold);box-shadow:0 0 0 3px rgba(200,148,26,0.15);">—</div>
+                <div class="credential-card">
+                    <div class="credential-top">
+                        <div class="credential-identity">
+                            <div id="reviewerAvatarDisplay" class="credential-seal credential-seal--reviewer">—</div>
                             <div>
-                                <div id="reviewerNameDisplay" style="font-family:'Playfair Display',serif;font-weight:600;font-size:17px;color:#1a1a1a;">Loading…</div>
-                                <span style="font-size:10.5px;font-weight:700;letter-spacing:0.08em;color:var(--kasu-gold);background:rgba(200,148,26,0.1);padding:3px 10px;border-radius:100px;display:inline-block;margin-top:4px;">PEER REVIEWER</span>
-                                <button type="button" onclick="editReviewerProfile()" style="background:none;border:none;color:var(--kasu-green);font-size:12px;text-decoration:underline;cursor:pointer;margin-left:8px;padding:0;">Edit Profile</button>
-                                <div id="reviewerUserEmail" style="font-size:12.5px;color:var(--text-muted);margin-top:4px;"></div>
+                                <div id="reviewerNameDisplay" class="credential-name">Loading…</div>
+                                <span class="role-plaque role-plaque--reviewer">PEER REVIEWER</span>
+                                <button type="button" onclick="editReviewerProfile()" class="credential-edit-link">Edit Profile</button>
+                                <div id="reviewerUserEmail" class="credential-meta"></div>
                             </div>
                         </div>
                         <button type="button" class="btn-outline-dark" onclick="authLogout()" style="padding:6px 16px;font-size:13px;">Log Out</button>
                     </div>
-                    <div id="reviewerStatStrip" style="display:flex;margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--border);gap:0;"></div>
+                    <div id="reviewerStatStrip" class="stat-strip"></div>
                 </div>
                 <div id="reviewerAssignmentsList"><div class="loading"><div class="loading-spinner"></div>Loading...</div></div>
             </div>
