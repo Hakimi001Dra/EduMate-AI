@@ -633,6 +633,25 @@
         </section>
     </div>
 
+    <!-- ═══════════ PAGE: ADMIN NOTICE ═══════════ -->
+    <!-- Shown when an admin account is logged into the public site — admins
+         don't use the author/reviewer portal, they use admin.html -->
+    <div id="page-admin-notice" class="page-content">
+        <section class="section-padding section-alt">
+            <div class="container-custom" style="max-width:600px;text-align:center;">
+                <div class="dashboard-card">
+                    <h2>You're signed in as an Editor/Admin</h2>
+                    <p style="font-size:14.5px;color:var(--text-secondary);margin:1rem 0 1.5rem;">
+                        Logged in as <strong id="adminNoticeUserEmail"></strong>. Admin accounts manage the journal
+                        through the Admin Dashboard rather than the public author/reviewer portal.
+                    </p>
+                    <a href="admin.html" class="btn-primary" style="display:inline-block;margin-right:0.75rem;">Go to Admin Dashboard →</a>
+                    <button type="button" class="btn-outline-dark" onclick="authLogout()">Log Out</button>
+                </div>
+            </div>
+        </section>
+    </div>
+
     <!-- ═══════════ FOOTER ═══════════ -->
     <footer>
         <div class="footer-inner">
