@@ -239,25 +239,36 @@ async function loadAdminSubmissions() {
         if (error) throw error;
         const c = document.getElementById('adminSubmissionsList');
         if (!data || !data.length) { c.innerHTML = '<p style="text-align:center;padding:2rem;color:var(--text-muted);">No submissions yet.</p>'; return; }
-        c.innerHTML = `<table><thead><tr><th>Title</th><th>Author</th><th>Email</th><th>Area</th><th>File</th><th>Status</th><th>Actions</th></tr></thead><tbody>${data.map(s => `
+        c.innerHTML = `<table><thead><tr><th>Title</th><th>Author</th><th>Email</th><th>Area</th><th>File</th><th>Status</th><th>Actions</th></tr></thead><tbody>${data.map(s => {
+            const publishedNote = s.published_at
+                ? `<div style="font-size:11px;color:#16a34a;margin-top:4px;">✅ Published ${new Date(s.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>`
+                : '';
+            const notifiedNote = s.last_notified_at
+                ? `<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">🔔 Notified ${new Date(s.last_notified_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>`
+                : '';
+            const publishBtnLabel = s.published_at ? '📰 Publish Again' : '📰 Publish';
+            const publishBtnClass = s.published_at ? 'delete-btn' : 'edit-btn';
+
+            return `
             <tr>
                 <td>${s.title}</td>
                 <td>${s.author_name}</td>
                 <td>${s.email}</td>
                 <td>${s.research_area || '—'}</td>
                 <td>${s.manuscript_path ? `<button class="edit-btn" style="padding:4px 10px;border:none;border-radius:4px;cursor:pointer;font-size:12px;" onclick="downloadManuscript('${s.manuscript_path}')">📄 Download</button>` : '—'}</td>
-                <td>${s.status}</td>
+                <td>${s.status}${publishedNote}${notifiedNote}</td>
                 <td><div class="actions">
                     <button class="edit-btn" onclick="updateSubmissionStatus('${s.id}','in_review')">In Review</button>
                     <button class="edit-btn" onclick="updateSubmissionStatus('${s.id}','accepted')">Accept</button>
                     <button class="delete-btn" onclick="updateSubmissionStatus('${s.id}','rejected')">Reject</button>
                     <button class="edit-btn" onclick="resendSubmissionNotification('${s.id}')">🔔 Notify</button>
-                    <button class="edit-btn" onclick="publishSubmissionToJournal('${s.id}')">📰 Publish</button>
+                    <button class="${publishBtnClass}" onclick="publishSubmissionToJournal('${s.id}')">${publishBtnLabel}</button>
                     <button class="edit-btn" onclick="assignReviewer('${s.id}')">🧑‍🔬 Assign Reviewer</button>
                     <button class="edit-btn" onclick="viewReviewsForSubmission('${s.id}')">📝 View Reviews</button>
                     <button class="delete-btn" onclick="deleteSubmission('${s.id}', ${s.manuscript_path ? `'${s.manuscript_path}'` : 'null'})">🗑️ Delete</button>
                 </div></td>
-            </tr>`).join('')}</tbody></table>`;
+            </tr>`;
+        }).join('')}</tbody></table>`;
     } catch (e) { document.getElementById('adminSubmissionsList').innerHTML = '<p style="color:red;">Error loading submissions</p>'; }
 }
 
@@ -269,7 +280,9 @@ async function resendSubmissionNotification(id) {
         const { data: record, error } = await db.from('submissions').select('*').eq('id', id).single();
         if (error) throw error;
         await withTimeout(db.functions.invoke('notify-submission', { body: { record } }), 10000);
+        await db.from('submissions').update({ last_notified_at: new Date().toISOString() }).eq('id', id);
         showToast('Notification email sent', 'success');
+        loadAdminSubmissions();
     } catch (e) {
         showToast('Could not send notification: ' + (e.message || 'unknown error'), 'error');
     }
@@ -297,6 +310,7 @@ async function updateSubmissionStatus(id, status) {
         // we just log it rather than blocking the admin action.
         try {
             await withTimeout(db.functions.invoke('notify-submission', { body: { type: 'status_update', record: updated } }), 10000);
+            await db.from('submissions').update({ last_notified_at: new Date().toISOString() }).eq('id', id);
         } catch (notifyErr) {
             console.warn('Status updated, but author notification failed:', notifyErr.message);
         }
@@ -314,6 +328,13 @@ async function publishSubmissionToJournal(id) {
     try {
         const { data: sub, error } = await db.from('submissions').select('*').eq('id', id).single();
         if (error) throw error;
+
+        // Already published before — this is the exact double-publish
+        // scenario we want to catch, so make it unmistakable.
+        if (sub.published_at) {
+            const when = new Date(sub.published_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+            if (!confirm(`⚠️ This submission was already published on ${when}. Publishing again will create a SECOND, duplicate entry in Journals. Continue anyway?`)) return;
+        }
 
         if (sub.status !== 'accepted') {
             if (!confirm(`This submission is currently "${sub.status}", not "accepted". Publish anyway?`)) return;
@@ -355,8 +376,13 @@ async function publishSubmissionToJournal(id) {
         });
         if (insErr) throw insErr;
 
+        // Record that this submission has now been published, so the
+        // table can warn before it happens again.
+        await db.from('submissions').update({ published_at: new Date().toISOString() }).eq('id', id);
+
         showToast('Published to Journals!', 'success');
         loadAdminJournals();
+        loadAdminSubmissions();
     } catch (e) {
         console.error(e);
         showToast(e.message || 'Error publishing submission', 'error');
