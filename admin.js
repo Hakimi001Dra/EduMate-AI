@@ -280,7 +280,8 @@ async function resendSubmissionNotification(id) {
         const { data: record, error } = await db.from('submissions').select('*').eq('id', id).single();
         if (error) throw error;
         await withTimeout(db.functions.invoke('notify-submission', { body: { record } }), 10000);
-        await db.from('submissions').update({ last_notified_at: new Date().toISOString() }).eq('id', id);
+        const { error: stampErr } = await db.from('submissions').update({ last_notified_at: new Date().toISOString() }).eq('id', id);
+        if (stampErr) console.error('Could not record last_notified_at:', stampErr);
         showToast('Notification email sent', 'success');
         loadAdminSubmissions();
     } catch (e) {
@@ -310,7 +311,8 @@ async function updateSubmissionStatus(id, status) {
         // we just log it rather than blocking the admin action.
         try {
             await withTimeout(db.functions.invoke('notify-submission', { body: { type: 'status_update', record: updated } }), 10000);
-            await db.from('submissions').update({ last_notified_at: new Date().toISOString() }).eq('id', id);
+            const { error: stampErr } = await db.from('submissions').update({ last_notified_at: new Date().toISOString() }).eq('id', id);
+            if (stampErr) console.error('Could not record last_notified_at:', stampErr);
         } catch (notifyErr) {
             console.warn('Status updated, but author notification failed:', notifyErr.message);
         }
@@ -378,7 +380,11 @@ async function publishSubmissionToJournal(id) {
 
         // Record that this submission has now been published, so the
         // table can warn before it happens again.
-        await db.from('submissions').update({ published_at: new Date().toISOString() }).eq('id', id);
+        const { error: stampErr } = await db.from('submissions').update({ published_at: new Date().toISOString() }).eq('id', id);
+        if (stampErr) {
+            console.error('Journal entry created, but failed to record published_at:', stampErr);
+            showToast('Published, but could not record the timestamp: ' + stampErr.message, 'error');
+        }
 
         showToast('Published to Journals!', 'success');
         loadAdminJournals();
