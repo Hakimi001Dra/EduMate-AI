@@ -54,9 +54,13 @@ document.addEventListener('DOMContentLoaded', init);
 
 // ─── PAGE NAVIGATION ─────────────────────────────────
 function showPage(page) {
-    // Reviewers get their own dashboard instead of the author Submit page
+    // Reviewers and admins don't use the author Submit page — route them
+    // to the view appropriate for their actual role instead.
     if (page === 'submit' && currentUserRole === 'reviewer') {
         page = 'reviewer';
+    }
+    if (page === 'submit' && currentUserRole === 'admin') {
+        page = 'admin-notice';
     }
 
     document.querySelectorAll('.page-content').forEach(el => el.classList.remove('active'));
@@ -75,6 +79,9 @@ function showPage(page) {
     }
     if (page === 'reviewer') {
         renderReviewerPage();
+    }
+    if (page === 'admin-notice') {
+        renderAdminNoticePage();
     }
 }
 
@@ -374,6 +381,12 @@ function renderSubmitPageAuthState() {
         showPage('reviewer');
         return;
     }
+    // Admin accounts shouldn't be treated as authors either — send them
+    // to a short notice pointing at the real Admin Dashboard.
+    if (currentUser && currentUserRole === 'admin') {
+        showPage('admin-notice');
+        return;
+    }
 
     if (currentUser) {
         gate.style.display = 'none';
@@ -386,6 +399,13 @@ function renderSubmitPageAuthState() {
         gate.style.display = 'block';
         authed.style.display = 'none';
     }
+}
+
+// Shown when an admin account is logged into the public site — admins
+// manage the journal through admin.html, not the author/reviewer portal.
+function renderAdminNoticePage() {
+    const emailEl = document.getElementById('adminNoticeUserEmail');
+    if (emailEl && currentUser) emailEl.textContent = currentUser.email;
 }
 
 // Loads and renders the logged-in author's own submissions. RLS already
