@@ -13,6 +13,21 @@ function showAdminDashboardView() {
 }
 
 // ─── INIT ────────────────────────────────────────────
+
+// Verifies the currently logged-in session actually has the 'admin' role.
+// This is the real access gate — merely having a valid login is not enough,
+// since authors and reviewers use the exact same Supabase Auth system.
+async function verifyAdminAccess(session) {
+    try {
+        const { data, error } = await db.from('profiles').select('role').eq('id', session.user.id).single();
+        if (error) throw error;
+        return data.role === 'admin';
+    } catch (e) {
+        console.error('Could not verify admin role:', e);
+        return false;
+    }
+}
+
 async function init() {
     try {
         await initSupabaseWithRetry();
@@ -20,6 +35,20 @@ async function init() {
 
         const { data } = await db.auth.getSession();
         if (data.session) {
+            const isAdmin = await verifyAdminAccess(data.session);
+            if (!isAdmin) {
+                // Not an admin account — don't grant dashboard access, even
+                // though the login itself was valid. Sign them out so a
+                // stray session can't silently sit here.
+                await db.auth.signOut();
+                showAdminLoginView();
+                const err = document.getElementById('adminLoginError');
+                if (err) {
+                    err.textContent = 'This account does not have admin access.';
+                    err.style.display = 'block';
+                }
+                return;
+            }
             adminSession = data.session;
             showAdminDashboardView();
             loadAdminDashboard();
@@ -110,6 +139,18 @@ async function adminLogin(e) {
         if (!db) await initSupabaseWithRetry(8, 250);
         const { data, error } = await db.auth.signInWithPassword({ email, password });
         if (error) throw error;
+
+        const isAdmin = await verifyAdminAccess(data.session);
+        if (!isAdmin) {
+            // Valid login, but this account isn't an admin — refuse entry
+            // and drop the session rather than leaving them signed in with
+            // nowhere to go.
+            await db.auth.signOut();
+            err.textContent = 'This account does not have admin access.';
+            err.style.display = 'block';
+            return;
+        }
+
         adminSession = data.session;
         err.style.display = 'none';
         showToast('Login successful!', 'success');
@@ -360,6 +401,13 @@ async function loadAdminUsers() {
 }
 
 async function updateUserRole(userId, newRole) {
+    // Guard against accidentally demoting the account you're currently
+    // logged in with — this exact mistake previously locked the admin
+    // dashboard out from itself.
+    if (adminSession && userId === adminSession.user.id && newRole !== 'admin') {
+        const confirmed = confirm('This is your own currently logged-in account. Changing its role away from Admin may lock you out of this dashboard immediately. Continue anyway?');
+        if (!confirmed) return;
+    }
     try {
         const { error } = await db.from('profiles').update({ role: newRole }).eq('id', userId);
         if (error) throw error;
