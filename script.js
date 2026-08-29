@@ -1169,20 +1169,7 @@ function renderHomePage() {
     renderSectionOrError('featuredJournals', allJournals.slice(0, 6), renderJournalCard, fetchErrors.journals, 'No articles found.', 'journals');
     renderSectionOrError('homeNewsList', allNews.slice(0, 4), renderNewsItem, fetchErrors.news, 'No news found.', 'news');
     renderSectionOrError('homeFacultyGrid', allFaculty.slice(0, 8), renderFacultyCard, fetchErrors.faculty, 'No faculty found.', 'faculty');
-
-    try {
-        const archiveContainer = document.getElementById('archiveList');
-        if (fetchErrors.journals) {
-            archiveContainer.innerHTML = '<li>Couldn\'t load — <a onclick="retrySection(\'journals\')">retry</a></li>';
-        } else {
-            const volumes = [...new Set(allJournals.map(j => `Volume ${j.volume} (${j.year})`))];
-            archiveContainer.innerHTML = volumes.map(v => `<li>${v}</li>`).join('') || '<li>No volumes</li>';
-        }
-    } catch (e) {
-        console.error('Error rendering archive list:', e);
-        const archiveContainer = document.getElementById('archiveList');
-        if (archiveContainer) archiveContainer.innerHTML = '<li>Couldn\'t load</li>';
-    }
+    renderHomeSectionsGrid();
 
     try {
         const validYears = allJournals.map(j => j.year).filter(y => typeof y === 'number' && !isNaN(y));
@@ -1195,6 +1182,20 @@ function renderHomePage() {
     } catch (e) {
         console.error('Error rendering stats:', e);
     }
+}
+
+// Compact version of the Sections grid, shown on the homepage — links
+// straight into the real section pages.
+function renderHomeSectionsGrid() {
+    const grid = document.getElementById('homeSectionsGrid');
+    if (!grid) return;
+    grid.innerHTML = JOURNAL_SECTIONS.slice(0, 6).map(s => {
+        const count = allJournals.filter(j => (j.tags || []).includes(s.name)).length;
+        return `<div class="board-card" style="text-align:left;cursor:pointer;" onclick="navigateToSection('${s.name}')">
+            <div class="board-name" style="font-size:15.5px;">${s.name}</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">${count} article${count === 1 ? '' : 's'}</div>
+        </div>`;
+    }).join('');
 }
 
 function renderAllPages() {
