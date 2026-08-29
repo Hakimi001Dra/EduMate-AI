@@ -364,6 +364,14 @@ async function publishSubmissionToJournal(id) {
         const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now().toString(36);
         const tags = sub.research_area ? [sub.research_area] : [];
 
+        // Pull the author's ORCID from their profile, if they've set one —
+        // shown on the public article page and journal card.
+        let authorOrcid = null;
+        if (sub.submitter_id) {
+            const { data: authorProfile } = await db.from('profiles').select('orcid').eq('id', sub.submitter_id).single();
+            authorOrcid = (authorProfile && authorProfile.orcid) || null;
+        }
+
         const { error: insErr } = await db.from('journals').insert({
             title,
             slug,
@@ -374,7 +382,8 @@ async function publishSubmissionToJournal(id) {
             published_date: new Date().toISOString().slice(0, 10),
             tags,
             pdf_url: pdfUrl,
-            submitter_id: sub.submitter_id || null
+            submitter_id: sub.submitter_id || null,
+            orcid: authorOrcid
         });
         if (insErr) throw insErr;
 
