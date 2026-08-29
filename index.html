@@ -41,14 +41,10 @@
     <!-- ═══════════ TOP BAR ═══════════ -->
     <div class="top-bar">
         <div class="inner">
-            <span>📍 Department of Sociology, Faculty of Social Sciences, Kaduna State University</span>
+            <span>Department of Sociology, Kaduna State University</span>
             <div class="links">
-                <a href="https://www.kasu.edu.ng" target="_blank" rel="noopener" id="kasuMainLink">KASU Main Site</a>
-                <a onclick="showPage('faculty')">Faculty</a>
-                <a onclick="showPage('news')">News & Events</a>
-                <a onclick="showPage('programmes')">Programmes</a>
-                <a href="mailto:sociology@kasu.edu.ng" id="contactLink">Contact</a>
-                <a id="adminLink" href="admin.html" style="color: var(--kasu-gold); font-weight: 600;">Admin</a>
+                <a href="https://www.kasu.edu.ng" target="_blank" rel="noopener" id="kasuMainLink">kasu.edu.ng</a>
+                <a id="adminLink" href="admin.html">Editorial Login</a>
             </div>
         </div>
     </div>
@@ -151,46 +147,26 @@
             </div>
         </section>
 
+        <!-- BROWSE BY SECTION -->
+        <section class="section-padding" id="sections-preview">
+            <div class="container-custom">
+                <div class="section-header">
+                    <span class="section-eyebrow">Explore the Journal</span>
+                    <h2>Browse by Section</h2>
+                </div>
+                <div class="board-grid" id="homeSectionsGrid"></div>
+            </div>
+        </section>
+
         <!-- NEWS SECTION -->
-        <section class="section-padding" id="news-section">
+        <section class="section-padding section-alt" id="news-section">
             <div class="container-custom">
                 <div class="section-header">
                     <span class="section-eyebrow">Departmental Activities</span>
                     <h2>News & Upcoming Events</h2>
                 </div>
-                <div class="news-grid">
-                    <div class="news-list" id="homeNewsList">
-                        <div class="loading"><div class="loading-spinner"></div>Loading news...</div>
-                    </div>
-                    <div>
-                        <div class="sidebar-card">
-                            <h4>Quick Links</h4>
-                            <ul class="sidebar-list">
-                                <li>Journal Author Guidelines</li>
-                                <li>Editorial Board</li>
-                                <li>Postgraduate Programmes</li>
-                                <li>Undergraduate Programmes</li>
-                                <li>Research Ethics Policy</li>
-                                <li>Staff Directory</li>
-                                <li>Contact the HOD</li>
-                            </ul>
-                        </div>
-                        <div class="sidebar-card">
-                            <h4>Archive by Volume</h4>
-                            <ul class="sidebar-list" id="archiveList">
-                                <li>Loading...</li>
-                            </ul>
-                        </div>
-                        <div class="sidebar-card">
-                            <h4>Indexed In</h4>
-                            <ul class="sidebar-list">
-                                <li>African Journals Online (AJOL)</li>
-                                <li>Google Scholar</li>
-                                <li>NigeriaJournalsOnline (NJOL)</li>
-                                <li>EBSCO Academic</li>
-                            </ul>
-                        </div>
-                    </div>
+                <div class="news-list" id="homeNewsList" style="max-width:800px;">
+                    <div class="loading"><div class="loading-spinner"></div>Loading news...</div>
                 </div>
             </div>
         </section>
