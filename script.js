@@ -63,6 +63,16 @@ function showPage(page) {
         page = 'admin-notice';
     }
 
+    // Clean the ?article= param out of the URL when navigating anywhere
+    // other than the article page itself, so links elsewhere stay tidy.
+    if (page !== 'article') {
+        const url = new URL(window.location.href);
+        if (url.searchParams.has('article')) {
+            url.searchParams.delete('article');
+            window.history.replaceState({}, '', url);
+        }
+    }
+
     document.querySelectorAll('.page-content').forEach(el => el.classList.remove('active'));
     const t = document.getElementById(`page-${page}`);
     if (t) t.classList.add('active');
@@ -82,6 +92,9 @@ function showPage(page) {
     }
     if (page === 'admin-notice') {
         renderAdminNoticePage();
+    }
+    if (page === 'editorial-board') {
+        renderEditorialBoard();
     }
 }
 
@@ -661,6 +674,15 @@ async function refreshAllData() {
     await Promise.all([fetchJournals(), fetchFaculty(), fetchNews(), fetchProgrammes()]);
     try { renderHomePage(); } catch (e) { console.error('renderHomePage failed:', e); }
     try { renderAllPages(); } catch (e) { console.error('renderAllPages failed:', e); }
+
+    // If the page was opened directly at a shared article link
+    // (e.g. index.html?article=some-slug), open straight to it.
+    const params = new URLSearchParams(window.location.search);
+    const sharedSlug = params.get('article');
+    if (sharedSlug) {
+        showPage('article');
+        loadArticlePage(sharedSlug);
+    }
 }
 
 // Retries a single section (called from the "Retry" button rendered
@@ -808,19 +830,25 @@ function renderJournalCard(a) {
     const authorsHtml = a.submitter_id
         ? `<a onclick="showAuthorPage('${a.submitter_id}')" style="cursor:pointer;text-decoration:underline;">${a.authors}</a>`
         : a.authors;
+    const orcidBadge = a.orcid
+        ? `<a href="https://orcid.org/${a.orcid}" target="_blank" rel="noopener" class="orcid-badge" onclick="event.stopPropagation()">iD</a>`
+        : '';
     return `<div class="journal-card">
         <div class="journal-meta">
             <span class="journal-vol">Vol. ${a.volume} · ${a.year}</span>
             <span class="journal-year">${formatDate(a.published_date)}</span>
         </div>
         <h3>${a.title}</h3>
-        <div class="authors">${authorsHtml}</div>
+        <div class="authors">${authorsHtml}${orcidBadge}</div>
         <p class="journal-abstract">${a.abstract}</p>
         <div class="journal-card-footer">
-            <div class="badge-area">${tags.slice(0,2).map(t => `<span class="badge ${getBadgeColor(t)}">${t}</span>`).join('')}</div>
+            <div class="badge-area">
+                <span class="review-badge"><span class="seal-dot">✓</span>Peer Reviewed</span>
+                ${tags.slice(0,1).map(t => `<span class="badge ${getBadgeColor(t)}">${t}</span>`).join('')}
+            </div>
             <div style="display:flex;gap:8px;align-items:center;">
                 ${pdfLink}
-                <button class="read-btn" onclick="viewArticle('${a.slug}')">Read →</button>
+                <button class="read-btn" onclick="navigateToArticle('${a.slug}')">Read →</button>
             </div>
         </div>
     </div>`;
@@ -861,28 +889,149 @@ function renderProgrammeCard(p) {
     </div>`;
 }
 
-// ─── VIEW ARTICLE ──────────────────────────────────
-async function viewArticle(slug) {
+// ─── ARTICLE PAGE (real, shareable URL) ──────────────
+// Navigates to a real article page at ?article=slug, updating browser
+// history so the URL is shareable and back/forward work correctly.
+function navigateToArticle(slug, replace) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('article', slug);
+    if (replace) {
+        window.history.replaceState({ article: slug }, '', url);
+    } else {
+        window.history.pushState({ article: slug }, '', url);
+    }
+    showPage('article');
+    loadArticlePage(slug);
+}
+
+let currentArticle = null; // the journal row currently shown on the article page
+
+async function loadArticlePage(slug) {
+    const headerEl = document.getElementById('articleHeaderContainer');
+    const bodyEl = document.getElementById('articleBodyContainer');
+    const citeEl = document.getElementById('articleCitationContainer');
+    bodyEl.style.display = 'none';
+    citeEl.style.display = 'none';
+    headerEl.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Loading article...</div>';
+
     try {
         const { data: a, error } = await db.from('journals').select('*').eq('slug', slug).single();
         if (error) throw error;
-        const modal = document.createElement('div');
-        modal.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;display:flex;align-items:center;justify-content:center;padding:2rem;overflow-y:auto;`;
-        modal.innerHTML = `<div style="background:white;border-radius:12px;max-width:800px;width:100%;max-height:90vh;overflow-y:auto;padding:2rem;position:relative;">
-            <button onclick="this.closest('div[style]').remove()" style="position:sticky;top:0;float:right;background:none;border:none;font-size:28px;cursor:pointer;">✕</button>
-            <h1 style="font-family:'Playfair Display',serif;font-size:1.8rem;">${a.title}</h1>
-            <p style="color:var(--text-muted);font-style:italic;">${a.authors}</p>
-            <p style="font-size:14px;color:var(--text-muted);margin:1rem 0;">Vol. ${a.volume} · ${a.year}</p>
-            <h2>Abstract</h2>
-            <p style="color:var(--text-secondary);line-height:1.8;">${a.abstract}</p>
-            ${a.pdf_url ? `<a href="${a.pdf_url}" target="_blank" class="btn-primary" style="display:inline-block;margin-top:1rem;">📄 Download File</a>` : ''}
-        </div>`;
-        document.body.appendChild(modal);
-        modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
-    } catch (e) { showToast('Error loading article', 'error'); }
+        currentArticle = a;
+
+        const authorsHtml = a.submitter_id
+            ? `<a onclick="showAuthorPage('${a.submitter_id}')" style="cursor:pointer;text-decoration:underline;color:inherit;">${a.authors}</a>`
+            : a.authors;
+        const orcidBadge = a.orcid
+            ? `<a href="https://orcid.org/${a.orcid}" target="_blank" rel="noopener" class="orcid-badge">iD ${a.orcid}</a>`
+            : '';
+
+        headerEl.innerHTML = `
+            <span class="journal-vol">Vol. ${a.volume} · ${a.year}</span>
+            <h1>${a.title}</h1>
+            <div class="authors-line">${authorsHtml}${orcidBadge}</div>
+            <div class="badges-row">
+                <span class="review-badge"><span class="seal-dot">✓</span>Double-Blind Peer Reviewed</span>
+                ${(a.tags || []).map(t => `<span class="badge ${getBadgeColor(t)}">${t}</span>`).join('')}
+            </div>
+        `;
+
+        document.getElementById('articleAbstractText').textContent = a.abstract;
+        document.getElementById('articleKeywordsList').innerHTML = (a.tags || [])
+            .map(t => `<span class="badge badge-sociology">${t}</span>`).join('');
+        document.getElementById('articlePdfLinkWrap').innerHTML = a.pdf_url
+            ? `<a href="${a.pdf_url}" target="_blank" class="btn-primary">📄 Download Full Article</a>`
+            : '<p style="font-size:13px;color:var(--text-muted);">No downloadable file available for this article.</p>';
+        bodyEl.style.display = 'block';
+
+        switchCitationFormat('apa');
+        citeEl.style.display = 'block';
+    } catch (e) {
+        console.error('Error loading article:', e);
+        headerEl.innerHTML = '<p style="text-align:center;color:#dc2626;">Article not found.</p>';
+    }
 }
 
-// ─── SEARCH ──────────────────────────────────────────
+// ─── CITATIONS ────────────────────────────────────────
+function buildApaCitation(a) {
+    const authors = a.authors || 'Unknown Author';
+    return `${authors} (${a.year}). ${a.title}. KASU Journal of Sociology & Social Sciences, ${a.volume}.`;
+}
+
+function buildBibtexCitation(a) {
+    const key = (a.slug || 'article').replace(/[^a-z0-9]/gi, '');
+    const authors = (a.authors || 'Unknown Author').replace(/;/g, ' and');
+    return `@article{${key}${a.year},\n  title={${a.title}},\n  author={${authors}},\n  journal={KASU Journal of Sociology \\& Social Sciences},\n  volume={${a.volume}},\n  year={${a.year}}\n}`;
+}
+
+let currentCitationFormat = 'apa';
+function switchCitationFormat(format) {
+    if (!currentArticle) return;
+    currentCitationFormat = format;
+    document.getElementById('citeTabApa').classList.toggle('active', format === 'apa');
+    document.getElementById('citeTabBibtex').classList.toggle('active', format === 'bibtex');
+    document.getElementById('citationBoxText').textContent = format === 'apa'
+        ? buildApaCitation(currentArticle)
+        : buildBibtexCitation(currentArticle);
+}
+
+function copyCitation() {
+    const text = document.getElementById('citationBoxText').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+        showToast('Citation copied to clipboard!', 'success');
+    }).catch(() => {
+        showToast('Could not copy — please select and copy manually.', 'error');
+    });
+}
+
+// Handles browser Back/Forward through article history
+window.addEventListener('popstate', (e) => {
+    const params = new URLSearchParams(window.location.search);
+    const slug = params.get('article');
+    if (slug) {
+        showPage('article');
+        loadArticlePage(slug);
+    } else {
+        showPage('home');
+    }
+});
+
+// ─── EDITORIAL BOARD ──────────────────────────────────
+async function renderEditorialBoard() {
+    const grid = document.getElementById('editorialBoardGrid');
+    if (!grid) return;
+    grid.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Loading...</div>';
+    try {
+        const { data, error } = await db.from('editorial_board_public').select('*');
+        if (error) throw error;
+
+        if (!data || !data.length) {
+            grid.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:2rem;">Editorial board information coming soon.</p>';
+            return;
+        }
+
+        grid.innerHTML = data.map(m => {
+            const sealClass = m.role === 'admin' ? 'credential-seal credential-seal--admin' : 'credential-seal credential-seal--reviewer';
+            const plaqueClass = m.role === 'admin' ? 'role-plaque role-plaque--admin' : 'role-plaque role-plaque--reviewer';
+            const roleLabel = m.title || (m.role === 'admin' ? 'Editor-in-Chief' : 'Peer Reviewer');
+            const avatar = m.avatar_url
+                ? `<img src="${m.avatar_url}" alt="${m.full_name}" style="width:100%;height:100%;object-fit:cover;">`
+                : initialsFromName(m.full_name);
+            return `<div class="board-card">
+                <div class="${sealClass}">${avatar}</div>
+                <div class="board-name">${m.full_name}</div>
+                <span class="${plaqueClass}">${roleLabel}</span>
+                <div class="board-title">${m.affiliation || ''}</div>
+                ${m.bio ? `<p class="board-bio">${m.bio}</p>` : ''}
+            </div>`;
+        }).join('');
+    } catch (e) {
+        console.error('Error loading editorial board:', e);
+        grid.innerHTML = '<p style="color:#dc2626;text-align:center;">Could not load editorial board.</p>';
+    }
+}
+
+// ─── SEARCH & FILTERS ──────────────────────────────────
 function searchJournals() {
     const query = document.getElementById('searchInput').value.toLowerCase();
     const container = document.getElementById('featuredJournals');
@@ -896,15 +1045,61 @@ function searchJournals() {
         '<p style="text-align:center;color:var(--text-muted);padding:2rem;">No articles found.</p>';
 }
 
+// Populates the Volume / Year / Research Area filter dropdowns from
+// whatever unique values currently exist in allJournals.
+function populateJournalFilters() {
+    const volEl = document.getElementById('filterVolume');
+    const yearEl = document.getElementById('filterYear');
+    const areaEl = document.getElementById('filterArea');
+    if (!volEl || !yearEl || !areaEl) return;
+
+    const volumes = [...new Set(allJournals.map(j => j.volume))].sort((a, b) => b - a);
+    const years = [...new Set(allJournals.map(j => j.year))].sort((a, b) => b - a);
+    const areas = [...new Set(allJournals.flatMap(j => j.tags || []))].sort();
+
+    const keepSelected = (el, val) => { if (val) el.value = val; };
+    const prevVol = volEl.value, prevYear = yearEl.value, prevArea = areaEl.value;
+
+    volEl.innerHTML = '<option value="">All Volumes</option>' + volumes.map(v => `<option value="${v}">Volume ${v}</option>`).join('');
+    yearEl.innerHTML = '<option value="">All Years</option>' + years.map(y => `<option value="${y}">${y}</option>`).join('');
+    areaEl.innerHTML = '<option value="">All Research Areas</option>' + areas.map(a => `<option value="${a}">${a}</option>`).join('');
+
+    keepSelected(volEl, prevVol);
+    keepSelected(yearEl, prevYear);
+    keepSelected(areaEl, prevArea);
+}
+
+function clearJournalFilters() {
+    const volEl = document.getElementById('filterVolume');
+    const yearEl = document.getElementById('filterYear');
+    const areaEl = document.getElementById('filterArea');
+    const searchEl = document.getElementById('searchJournalsPage');
+    if (volEl) volEl.value = '';
+    if (yearEl) yearEl.value = '';
+    if (areaEl) areaEl.value = '';
+    if (searchEl) searchEl.value = '';
+    searchJournalsPage();
+}
+
 function searchJournalsPage() {
-    const query = document.getElementById('searchJournalsPage').value.toLowerCase();
+    const query = (document.getElementById('searchJournalsPage').value || '').toLowerCase();
+    const volFilter = document.getElementById('filterVolume') ? document.getElementById('filterVolume').value : '';
+    const yearFilter = document.getElementById('filterYear') ? document.getElementById('filterYear').value : '';
+    const areaFilter = document.getElementById('filterArea') ? document.getElementById('filterArea').value : '';
     const container = document.getElementById('allJournalsGrid');
-    const filtered = allJournals.filter(j =>
-        j.title.toLowerCase().includes(query) ||
-        j.authors.toLowerCase().includes(query) ||
-        (j.tags||[]).some(t => t.toLowerCase().includes(query)) ||
-        j.abstract.toLowerCase().includes(query)
-    );
+
+    const filtered = allJournals.filter(j => {
+        const matchesQuery = !query ||
+            j.title.toLowerCase().includes(query) ||
+            j.authors.toLowerCase().includes(query) ||
+            (j.tags||[]).some(t => t.toLowerCase().includes(query)) ||
+            j.abstract.toLowerCase().includes(query);
+        const matchesVol = !volFilter || String(j.volume) === volFilter;
+        const matchesYear = !yearFilter || String(j.year) === yearFilter;
+        const matchesArea = !areaFilter || (j.tags || []).includes(areaFilter);
+        return matchesQuery && matchesVol && matchesYear && matchesArea;
+    });
+
     container.innerHTML = filtered.map(renderJournalCard).join('') ||
         '<p style="text-align:center;color:var(--text-muted);padding:2rem;">No articles found.</p>';
 }
@@ -947,6 +1142,7 @@ function renderAllPages() {
     renderSectionOrError('allFacultyGrid', allFaculty, renderFacultyCard, fetchErrors.faculty, 'No faculty found.', 'faculty');
     renderSectionOrError('allNewsList', allNews, renderNewsItem, fetchErrors.news, 'No news found.', 'news');
     renderSectionOrError('programmesGrid', allProgrammes, renderProgrammeCard, fetchErrors.programmes, 'No programmes found.', 'programmes');
+    populateJournalFilters();
 }
 
 // ─── SUBMIT PAPER (now requires a logged-in author) ──
