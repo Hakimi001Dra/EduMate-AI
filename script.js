@@ -891,7 +891,9 @@ function renderNewsItem(n) {
     const d = new Date(n.date);
     const mn = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const tc = { 'Seminar': 'type-event', 'Call for Papers': 'type-call', 'Department News': 'type-news', 'Workshop': 'type-event' } [n.type] || 'type-news';
+    const imageHtml = n.image_url ? `<div class="news-item-image"><img src="${n.image_url}" alt="${n.title}"></div>` : '';
     return `<div class="news-item">
+        ${imageHtml}
         <div class="news-date-block"><span class="day">${d.getDate()}</span><span class="month">${mn[d.getMonth()]}</span></div>
         <div><span class="news-type ${tc}">${n.type}</span><h4>${n.title}</h4><p>${n.description}</p></div>
     </div>`;
