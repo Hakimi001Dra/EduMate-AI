@@ -66,6 +66,7 @@
                 <ul id="mainNav">
                     <li><a onclick="showPage('home')" class="active" data-page="home">Home</a></li>
                     <li><a onclick="showPage('journals')" data-page="journals">Journals</a></li>
+                    <li><a onclick="showPage('editorial-board')" data-page="editorial-board">Editorial Board</a></li>
                     <li><a onclick="showPage('faculty')" data-page="faculty">Faculty</a></li>
                     <li><a onclick="showPage('news')" data-page="news">News & Events</a></li>
                     <li><a onclick="showPage('programmes')" data-page="programmes">Programmes</a></li>
@@ -344,8 +345,61 @@
         </div>
         <section class="section-padding section-alt">
             <div class="container-custom">
+                <div class="filter-bar">
+                    <select id="filterVolume" onchange="searchJournalsPage()"><option value="">All Volumes</option></select>
+                    <select id="filterYear" onchange="searchJournalsPage()"><option value="">All Years</option></select>
+                    <select id="filterArea" onchange="searchJournalsPage()"><option value="">All Research Areas</option></select>
+                    <button type="button" class="clear-filters-btn" onclick="clearJournalFilters()">Clear filters</button>
+                </div>
                 <div class="journal-grid" id="allJournalsGrid">
                     <div class="loading"><div class="loading-spinner"></div>Loading all journals...</div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- ═══════════ PAGE: ARTICLE (real, shareable URL via ?article=slug) ═══════════ -->
+    <div id="page-article" class="page-content">
+        <section class="section-padding section-alt">
+            <div class="container-custom" style="max-width:800px;">
+                <button type="button" onclick="showPage('journals')" style="background:none;border:none;color:var(--kasu-green);font-size:13.5px;font-weight:600;cursor:pointer;margin-bottom:1.25rem;padding:0;">← Back to Journals</button>
+
+                <div class="article-header" id="articleHeaderContainer">
+                    <div class="loading"><div class="loading-spinner"></div>Loading article...</div>
+                </div>
+
+                <div class="article-body" id="articleBodyContainer" style="display:none;">
+                    <h2>Abstract</h2>
+                    <p id="articleAbstractText"></p>
+                    <div class="article-keywords" id="articleKeywordsList"></div>
+                    <div id="articlePdfLinkWrap" style="margin-top:1.5rem;"></div>
+                </div>
+
+                <div class="citation-card" id="articleCitationContainer" style="display:none;">
+                    <h2 style="font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--kasu-green);margin-bottom:1rem;">Cite This Article</h2>
+                    <div class="citation-tabs">
+                        <button type="button" class="citation-tab-btn active" id="citeTabApa" onclick="switchCitationFormat('apa')">APA</button>
+                        <button type="button" class="citation-tab-btn" id="citeTabBibtex" onclick="switchCitationFormat('bibtex')">BibTeX</button>
+                    </div>
+                    <div class="citation-box" id="citationBoxText"></div>
+                    <button type="button" class="citation-copy-btn" onclick="copyCitation()">📋 Copy Citation</button>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- ═══════════ PAGE: EDITORIAL BOARD ═══════════ -->
+    <div id="page-editorial-board" class="page-content">
+        <div class="hero" style="padding:3rem 2rem;">
+            <div class="container-custom">
+                <h1 style="color:white;font-family:'Playfair Display',serif;font-size:2.5rem;">Editorial Board</h1>
+                <p style="color:rgba(255,255,255,0.7);font-size:1.1rem;max-width:600px;">The editors and peer reviewers overseeing KJSSS.</p>
+            </div>
+        </div>
+        <section class="section-padding section-alt">
+            <div class="container-custom">
+                <div class="board-grid" id="editorialBoardGrid">
+                    <div class="loading"><div class="loading-spinner"></div>Loading...</div>
                 </div>
             </div>
         </section>
