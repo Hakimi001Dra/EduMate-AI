@@ -41,10 +41,12 @@
     <!-- ═══════════ TOP BAR ═══════════ -->
     <div class="top-bar">
         <div class="inner">
-            <span>📍 Faculty of Social Sciences, Kaduna State University — Kaduna, Nigeria</span>
+            <span>📍 Department of Sociology, Faculty of Social Sciences, Kaduna State University</span>
             <div class="links">
                 <a href="https://www.kasu.edu.ng" target="_blank" rel="noopener" id="kasuMainLink">KASU Main Site</a>
-                <a href="https://www.kasu.edu.ng/library" target="_blank" rel="noopener" id="eLibraryLink">E-Library</a>
+                <a onclick="showPage('faculty')">Faculty</a>
+                <a onclick="showPage('news')">News & Events</a>
+                <a onclick="showPage('programmes')">Programmes</a>
                 <a href="mailto:sociology@kasu.edu.ng" id="contactLink">Contact</a>
                 <a id="adminLink" href="admin.html" style="color: var(--kasu-gold); font-weight: 600;">Admin</a>
             </div>
@@ -57,19 +59,19 @@
             <div class="brand" onclick="showPage('home')">
                 <div class="brand-logo" id="brandLogo">SΩC</div>
                 <div class="brand-text">
-                    <span class="dept">Sociology Department</span>
-                    <span class="uni">Kaduna State University</span>
+                    <span class="dept">KJSSS</span>
+                    <span class="uni">KASU Journal of Sociology & Social Sciences</span>
                 </div>
             </div>
             <nav>
                 <button class="mobile-toggle" onclick="toggleMobileMenu()">☰</button>
                 <ul id="mainNav">
                     <li><a onclick="showPage('home')" class="active" data-page="home">Home</a></li>
-                    <li><a onclick="showPage('journals')" data-page="journals">Journals</a></li>
+                    <li><a onclick="showPage('sections')" data-page="sections">Sections</a></li>
+                    <li><a onclick="showPage('journals')" data-page="journals">Articles</a></li>
                     <li><a onclick="showPage('editorial-board')" data-page="editorial-board">Editorial Board</a></li>
-                    <li><a onclick="showPage('faculty')" data-page="faculty">Faculty</a></li>
-                    <li><a onclick="showPage('news')" data-page="news">News & Events</a></li>
-                    <li><a onclick="showPage('programmes')" data-page="programmes">Programmes</a></li>
+                    <li><a onclick="showPage('about-journal')" data-page="about-journal">About</a></li>
+                    <li><a onclick="showPage('for-authors')" data-page="for-authors">For Authors</a></li>
                     <li><a onclick="showPage('submit')" class="nav-btn" data-page="submit">Submit Paper</a></li>
                 </ul>
             </nav>
@@ -90,12 +92,12 @@
         <section class="hero">
             <div class="hero-inner">
                 <div class="hero-content">
-                    <div class="hero-eyebrow">Advancing Social Science in Northern Nigeria</div>
-                    <h1>Understanding Society,<br><em>Shaping the Future</em></h1>
-                    <p>The Department of Sociology at Kaduna State University publishes peer-reviewed research, drives social inquiry, and prepares the next generation of sociologists for Nigeria and beyond.</p>
+                    <div class="hero-eyebrow">Open Access · Double-Blind Peer Reviewed</div>
+                    <h1>KASU Journal of<br><em>Sociology & Social Sciences</em></h1>
+                    <p>A peer-reviewed, open-access journal publishing original sociological research from Kaduna State University and scholars worldwide. Free to publish, free to read.</p>
                     <div class="hero-actions">
-                        <button class="btn-primary" onclick="showPage('journals')">Browse Our Journals →</button>
-                        <button class="btn-outline" onclick="document.getElementById('about-section').scrollIntoView({behavior:'smooth'})">About the Department</button>
+                        <button class="btn-primary" onclick="showPage('journals')">Browse Articles →</button>
+                        <button class="btn-outline" onclick="showPage('for-authors')">Submission Guidelines</button>
                     </div>
                 </div>
                 <div class="hero-stats" id="heroStats">
@@ -400,6 +402,148 @@
             <div class="container-custom">
                 <div class="board-grid" id="editorialBoardGrid">
                     <div class="loading"><div class="loading-spinner"></div>Loading...</div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- ═══════════ PAGE: SECTIONS ═══════════ -->
+    <div id="page-sections" class="page-content">
+        <div class="hero" style="padding:3rem 2rem;">
+            <div class="container-custom">
+                <h1 style="color:white;font-family:'Playfair Display',serif;font-size:2.5rem;">Journal Sections</h1>
+                <p style="color:rgba(255,255,255,0.7);font-size:1.1rem;max-width:640px;">KJSSS is organized into specialty sections, each covering a distinct area of sociological research.</p>
+            </div>
+        </div>
+        <section class="section-padding section-alt">
+            <div class="container-custom">
+                <div class="board-grid" id="sectionsGrid"></div>
+            </div>
+        </section>
+    </div>
+
+    <!-- ═══════════ PAGE: SECTION DETAIL ═══════════ -->
+    <div id="page-section-detail" class="page-content">
+        <div class="hero" style="padding:3rem 2rem;">
+            <div class="container-custom">
+                <button type="button" onclick="showPage('sections')" style="background:none;border:none;color:rgba(255,255,255,0.7);font-size:13px;cursor:pointer;margin-bottom:0.75rem;padding:0;">← All Sections</button>
+                <h1 id="sectionDetailTitle" style="color:white;font-family:'Playfair Display',serif;font-size:2.2rem;">Section</h1>
+                <p id="sectionDetailDesc" style="color:rgba(255,255,255,0.7);font-size:1.05rem;max-width:640px;"></p>
+            </div>
+        </div>
+        <section class="section-padding section-alt">
+            <div class="container-custom">
+                <div class="journal-grid" id="sectionDetailGrid"></div>
+            </div>
+        </section>
+    </div>
+
+    <!-- ═══════════ PAGE: ABOUT THE JOURNAL ═══════════ -->
+    <div id="page-about-journal" class="page-content">
+        <div class="hero" style="padding:3rem 2rem;">
+            <div class="container-custom">
+                <h1 style="color:white;font-family:'Playfair Display',serif;font-size:2.5rem;">About KJSSS</h1>
+                <p style="color:rgba(255,255,255,0.7);font-size:1.1rem;max-width:640px;">Scope, editorial policy, and publishing facts.</p>
+            </div>
+        </div>
+        <section class="section-padding section-alt">
+            <div class="container-custom" style="max-width:900px;">
+                <div class="dashboard-card">
+                    <h2>Scope & Mission</h2>
+                    <p style="font-size:14.5px;color:var(--text-secondary);line-height:1.8;">
+                        The KASU Journal of Sociology & Social Sciences (KJSSS) publishes original, peer-reviewed research
+                        across the full breadth of sociology — including urban sociology, gender and society, political
+                        sociology, health sociology, environmental sociology, rural development, and criminology. We welcome
+                        theoretical and empirical work that connects sociological inquiry to the pressing social realities
+                        of Kaduna State, Nigeria, and the wider region.
+                    </p>
+                </div>
+
+                <div class="dashboard-card">
+                    <h2>Journal Facts</h2>
+                    <div class="facts-grid">
+                        <div class="facts-item"><span class="facts-label">Review Model</span><span class="facts-value">Double-Blind Peer Review</span></div>
+                        <div class="facts-item"><span class="facts-label">Access</span><span class="facts-value">Open Access</span></div>
+                        <div class="facts-item"><span class="facts-label">Publishing Fee</span><span class="facts-value">None</span></div>
+                        <div class="facts-item"><span class="facts-label">Format</span><span class="facts-value">Online, PDF/Word</span></div>
+                        <div class="facts-item"><span class="facts-label">Language</span><span class="facts-value">English</span></div>
+                        <div class="facts-item"><span class="facts-label">Host Institution</span><span class="facts-value">Kaduna State University</span></div>
+                    </div>
+                </div>
+
+                <div class="dashboard-card">
+                    <h2>Editorial Policy</h2>
+                    <p style="font-size:14.5px;color:var(--text-secondary);line-height:1.8;">
+                        Every submission undergoes double-blind peer review by at least one qualified reviewer, coordinated
+                        by our Editorial Board. Author identity is withheld from reviewers throughout the process.
+                        Manuscripts must be original, unpublished, and free of plagiarism (maximum similarity index: 15%).
+                        Any use of AI tools in manuscript preparation must be disclosed at submission.
+                    </p>
+                </div>
+
+                <div class="dashboard-card" style="margin-bottom:0;">
+                    <h2>Open Access Statement</h2>
+                    <p style="font-size:14.5px;color:var(--text-secondary);line-height:1.8;">
+                        All articles published in KJSSS are freely available to read and download, with no subscription,
+                        paywall, or reader fee. Authors are not charged any publishing or processing fee.
+                    </p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- ═══════════ PAGE: FOR AUTHORS ═══════════ -->
+    <div id="page-for-authors" class="page-content">
+        <div class="hero" style="padding:3rem 2rem;">
+            <div class="container-custom">
+                <h1 style="color:white;font-family:'Playfair Display',serif;font-size:2.5rem;">For Authors</h1>
+                <p style="color:rgba(255,255,255,0.7);font-size:1.1rem;max-width:640px;">Everything you need before submitting to KJSSS.</p>
+            </div>
+        </div>
+        <section class="section-padding section-alt">
+            <div class="container-custom" style="max-width:900px;">
+                <div class="dashboard-card">
+                    <h2>Why Submit to KJSSS?</h2>
+                    <p style="font-size:14.5px;color:var(--text-secondary);line-height:1.8;">
+                        Free to publish, free to read. Rigorous double-blind peer review. Fast, transparent status
+                        tracking through your own author account. Published work reaches an open, indexed audience with
+                        no access barriers.
+                    </p>
+                </div>
+
+                <div class="dashboard-card">
+                    <h2>Article Types</h2>
+                    <p style="font-size:14.5px;color:var(--text-secondary);line-height:1.8;">
+                        KJSSS currently accepts <strong>Original Research</strong> articles: full-length empirical or
+                        theoretical papers not exceeding 6,000 words, including references.
+                    </p>
+                </div>
+
+                <div class="dashboard-card">
+                    <h2>Author Guidelines</h2>
+                    <ol style="padding-left:1.2rem;color:var(--text-secondary);font-size:14.5px;line-height:1.9;">
+                        <li>Manuscripts must be original and not under consideration elsewhere.</li>
+                        <li>Each research paper should not exceed 6,000 words.</li>
+                        <li>Prepare in Microsoft Word, Times New Roman, 12-point font, double-spaced.</li>
+                        <li>Include an abstract of no more than 250 words with five keywords.</li>
+                        <li>References and citations should follow APA 7th Edition style.</li>
+                        <li>Provide author details on a separate title page to allow blind peer review.</li>
+                        <li>All submissions undergo a double-blind peer review process.</li>
+                        <li>Manuscripts must be free of plagiarism (maximum similarity index: 15%).</li>
+                        <li>Disclose any use of AI tools in manuscript preparation.</li>
+                    </ol>
+                </div>
+
+                <div class="dashboard-card" style="margin-bottom:0;">
+                    <h2>Submission Checklist</h2>
+                    <ul style="padding-left:1.2rem;color:var(--text-secondary);font-size:14.5px;line-height:1.9;list-style:'✓  ';">
+                        <li>Manuscript is under 6,000 words and formatted correctly</li>
+                        <li>Abstract is under 250 words with exactly 5 keywords</li>
+                        <li>Author-identifying details removed from the manuscript itself</li>
+                        <li>AI tool usage disclosed (or stated as "None")</li>
+                        <li>You have a free KJSSS author account to track your submission</li>
+                    </ul>
+                    <button type="button" class="btn-primary" style="margin-top:1.5rem;" onclick="showPage('submit')">Go to Submission Portal →</button>
                 </div>
             </div>
         </section>
