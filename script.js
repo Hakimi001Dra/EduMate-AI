@@ -13,6 +13,18 @@ let siteSettings = {
 let currentUser = null; // the logged-in author's session.user, or null
 let currentUserRole = null; // 'user' (author), 'reviewer', or 'admin' — from profiles.role
 
+// Journal Sections — matches the Research Area options on the submission
+// form, so every published article maps cleanly to a section.
+const JOURNAL_SECTIONS = [
+    { name: 'Urban Sociology', description: 'Research on city life, urbanisation, housing, and the social structure of urban communities.' },
+    { name: 'Gender & Society', description: 'Studies of gender, sexuality, and their intersections with social institutions and inequality.' },
+    { name: 'Political Sociology', description: 'The social dimensions of power, governance, the state, and political movements.' },
+    { name: 'Health Sociology', description: 'Social determinants of health, healthcare systems, and public health in society.' },
+    { name: 'Environmental Sociology', description: 'The relationship between human societies and the natural environment.' },
+    { name: 'Rural Development', description: 'Social and economic development, livelihoods, and change in rural communities.' },
+    { name: 'Criminology', description: 'The social causes, patterns, and responses to crime and deviance.' },
+];
+
 // ─── TOAST ──────────────────────────────────────────
 function showToast(msg, type = 'success') {
     const t = document.getElementById('toast');
@@ -63,14 +75,14 @@ function showPage(page) {
         page = 'admin-notice';
     }
 
-    // Clean the ?article= param out of the URL when navigating anywhere
-    // other than the article page itself, so links elsewhere stay tidy.
-    if (page !== 'article') {
+    // Clean the ?article=/?section= params out of the URL when navigating
+    // anywhere other than those specific pages, so links elsewhere stay tidy.
+    if (page !== 'article' && page !== 'section-detail') {
         const url = new URL(window.location.href);
-        if (url.searchParams.has('article')) {
-            url.searchParams.delete('article');
-            window.history.replaceState({}, '', url);
-        }
+        let changed = false;
+        if (url.searchParams.has('article')) { url.searchParams.delete('article'); changed = true; }
+        if (url.searchParams.has('section')) { url.searchParams.delete('section'); changed = true; }
+        if (changed) window.history.replaceState({}, '', url);
     }
 
     document.querySelectorAll('.page-content').forEach(el => el.classList.remove('active'));
@@ -95,6 +107,9 @@ function showPage(page) {
     }
     if (page === 'editorial-board') {
         renderEditorialBoard();
+    }
+    if (page === 'sections') {
+        renderSectionsPage();
     }
 }
 
@@ -675,13 +690,18 @@ async function refreshAllData() {
     try { renderHomePage(); } catch (e) { console.error('renderHomePage failed:', e); }
     try { renderAllPages(); } catch (e) { console.error('renderAllPages failed:', e); }
 
-    // If the page was opened directly at a shared article link
-    // (e.g. index.html?article=some-slug), open straight to it.
+    // If the page was opened directly at a shared article or section link
+    // (e.g. index.html?article=some-slug or ?section=Urban%20Sociology),
+    // open straight to it.
     const params = new URLSearchParams(window.location.search);
     const sharedSlug = params.get('article');
+    const sharedSection = params.get('section');
     if (sharedSlug) {
         showPage('article');
         loadArticlePage(sharedSlug);
+    } else if (sharedSection) {
+        showPage('section-detail');
+        loadSectionDetail(sharedSection);
     }
 }
 
@@ -988,9 +1008,13 @@ function copyCitation() {
 window.addEventListener('popstate', (e) => {
     const params = new URLSearchParams(window.location.search);
     const slug = params.get('article');
+    const section = params.get('section');
     if (slug) {
         showPage('article');
         loadArticlePage(slug);
+    } else if (section) {
+        showPage('section-detail');
+        loadSectionDetail(section);
     } else {
         showPage('home');
     }
@@ -1029,6 +1053,42 @@ async function renderEditorialBoard() {
         console.error('Error loading editorial board:', e);
         grid.innerHTML = '<p style="color:#dc2626;text-align:center;">Could not load editorial board.</p>';
     }
+}
+
+// ─── JOURNAL SECTIONS ─────────────────────────────────
+function renderSectionsPage() {
+    const grid = document.getElementById('sectionsGrid');
+    if (!grid) return;
+    grid.innerHTML = JOURNAL_SECTIONS.map(s => {
+        const count = allJournals.filter(j => (j.tags || []).includes(s.name)).length;
+        return `<div class="board-card" style="text-align:left;">
+            <div class="board-name" style="font-size:17px;">${s.name}</div>
+            <p class="section-card-desc">${s.description}</p>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:1rem;">${count} article${count === 1 ? '' : 's'} published</div>
+            <button type="button" class="btn-outline-dark" style="font-size:12.5px;padding:6px 16px;" onclick="navigateToSection('${s.name}')">View Section →</button>
+        </div>`;
+    }).join('');
+}
+
+function navigateToSection(name, replace) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('section', name);
+    if (replace) {
+        window.history.replaceState({ section: name }, '', url);
+    } else {
+        window.history.pushState({ section: name }, '', url);
+    }
+    showPage('section-detail');
+    loadSectionDetail(name);
+}
+
+function loadSectionDetail(name) {
+    const section = JOURNAL_SECTIONS.find(s => s.name === name);
+    document.getElementById('sectionDetailTitle').textContent = name;
+    document.getElementById('sectionDetailDesc').textContent = section ? section.description : '';
+    const filtered = allJournals.filter(j => (j.tags || []).includes(name));
+    document.getElementById('sectionDetailGrid').innerHTML = filtered.map(renderJournalCard).join('') ||
+        '<p style="text-align:center;color:var(--text-muted);padding:2rem;">No articles published in this section yet.</p>';
 }
 
 // ─── SEARCH & FILTERS ──────────────────────────────────
