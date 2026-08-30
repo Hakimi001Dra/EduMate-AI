@@ -474,76 +474,68 @@
             grid-template-columns: 2fr 1fr;
             gap: 2rem;
         }
-        .news-list { display: flex; flex-direction: column; gap: 1.25rem; }
-        .news-item {
-            display: flex;
-            gap: 1.1rem;
-            padding: 1.1rem;
-            background: var(--bg-white);
-            border-radius: 10px;
-            border: 1px solid var(--border);
-            transition: border-color 0.2s, box-shadow 0.2s;
-            align-items: flex-start;
+        /* News as proper cards — image commands real space up top, matching
+           the same visual language as .journal-card and .faculty-card. */
+        .news-card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
         }
-        .news-item:hover { border-color: var(--kasu-green); box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
-        .news-item-image {
-            width: 96px;
-            height: 96px;
-            border-radius: 8px;
+        .news-card {
+            background: var(--bg-white);
+            border: 1px solid var(--border);
+            border-radius: 10px;
             overflow: hidden;
-            flex-shrink: 0;
+            transition: all 0.25s;
+            display: flex;
+            flex-direction: column;
+        }
+        .news-card:hover {
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+            border-color: var(--kasu-green-mid);
+        }
+        .news-card-image {
+            height: 200px;
             background: var(--bg-cream);
             display: flex;
             align-items: center;
             justify-content: center;
+            overflow: hidden;
         }
-        /* object-fit: contain — shows the entire uploaded image with no
-           cropping, letterboxed on the cream background if its aspect
-           ratio doesn't perfectly match the square frame. */
-        .news-item-image img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; display: block; }
-        .news-item-content { flex: 1; min-width: 0; }
-        .news-date-block {
+        /* object-fit: contain — the entire uploaded image stays visible, no
+           cropping. The much larger frame here means minimal letterboxing
+           for most photos, while still never cutting anything off. */
+        .news-card-image img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; display: block; }
+        .news-card-body { padding: 1.25rem; display: flex; flex-direction: column; flex: 1; }
+        .news-card-date-row { display: flex; align-items: center; gap: 10px; margin-bottom: 0.6rem; }
+        .news-card-date-pill {
             background: var(--kasu-green);
             color: #fff;
-            border-radius: 8px;
-            padding: 8px 12px;
-            text-align: center;
-            min-width: 50px;
-            flex-shrink: 0;
-            height: fit-content;
-        }
-        .news-date-block .day {
-            font-size: 1.4rem;
+            border-radius: 6px;
+            padding: 3px 10px;
+            font-size: 12px;
             font-weight: 700;
-            line-height: 1;
-            display: block;
             font-family: 'Playfair Display', serif;
+            white-space: nowrap;
         }
-        .news-date-block .month {
-            font-size: 11px;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-            opacity: 0.8;
-        }
-        .news-item h4 {
-            font-size: 15px;
+        .news-card h4 {
+            font-size: 15.5px;
             font-weight: 600;
             color: var(--text-primary);
-            margin-bottom: 0.35rem;
+            margin-bottom: 0.4rem;
             line-height: 1.4;
         }
-        .news-item p {
+        .news-card p {
             font-size: 13.5px;
             color: var(--text-secondary);
-            line-height: 1.55;
+            line-height: 1.6;
         }
         .news-type {
             font-size: 11px;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.08em;
-            margin-bottom: 0.4rem;
-            display: block;
         }
         .type-event { color: var(--kasu-gold); }
         .type-news { color: var(--kasu-green); }
@@ -604,7 +596,7 @@
             transform: translateY(-3px);
         }
         .faculty-photo {
-            height: 120px;
+            height: 220px;
             background: var(--kasu-green);
             display: flex;
             align-items: center;
