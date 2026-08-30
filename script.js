@@ -891,11 +891,19 @@ function renderNewsItem(n) {
     const d = new Date(n.date);
     const mn = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const tc = { 'Seminar': 'type-event', 'Call for Papers': 'type-call', 'Department News': 'type-news', 'Workshop': 'type-event' } [n.type] || 'type-news';
-    const imageHtml = n.image_url ? `<div class="news-item-image"><img src="${n.image_url}" alt="${n.title}"></div>` : '';
-    return `<div class="news-item">
+    const imageHtml = n.image_url
+        ? `<div class="news-card-image"><img src="${n.image_url}" alt="${n.title}"></div>`
+        : `<div class="news-card-image"><span style="font-family:'Playfair Display',serif;font-size:2rem;color:var(--kasu-gold);opacity:0.4;">${d.getDate()}</span></div>`;
+    return `<div class="news-card">
         ${imageHtml}
-        <div class="news-date-block"><span class="day">${d.getDate()}</span><span class="month">${mn[d.getMonth()]}</span></div>
-        <div class="news-item-content"><span class="news-type ${tc}">${n.type}</span><h4>${n.title}</h4><p>${n.description}</p></div>
+        <div class="news-card-body">
+            <div class="news-card-date-row">
+                <span class="news-card-date-pill">${d.getDate()} ${mn[d.getMonth()]}</span>
+                <span class="news-type ${tc}">${n.type}</span>
+            </div>
+            <h4>${n.title}</h4>
+            <p>${n.description}</p>
+        </div>
     </div>`;
 }
 
