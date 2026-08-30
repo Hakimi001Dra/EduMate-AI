@@ -10,6 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -104,10 +105,14 @@
                                     <label>Abstract *</label>
                                     <textarea id="ajAbstract" rows="4" required></textarea>
                                 </div>
-                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;">
                                     <div class="form-group">
                                         <label>Volume *</label>
                                         <input type="number" id="ajVolume" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Issue</label>
+                                        <input type="number" id="ajIssue">
                                     </div>
                                     <div class="form-group">
                                         <label>Year *</label>
