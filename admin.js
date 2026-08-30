@@ -326,6 +326,71 @@ async function updateSubmissionStatus(id, status) {
 // "manuscripts" bucket into the public "journal-pdfs" bucket, and creates
 // a matching row in the "journals" table so it appears on the main site.
 // Prompts for volume/year since submissions don't collect those.
+// Stamps a green branding band across the top of a PDF's first page —
+// journal name, volume, issue, and year — plus the site logo if one is
+// set. Uses pdf-lib (loaded via CDN in admin.html), entirely client-side,
+// no server or paid conversion service required. Only ever called on
+// files already confirmed to be real PDFs.
+async function stampJournalCoverPage(fileBlob, meta) {
+    if (!window.PDFLib) throw new Error('PDF library not loaded — check your internet connection and refresh.');
+    const { PDFDocument, rgb, StandardFonts } = window.PDFLib;
+
+    const arrayBuffer = await fileBlob.arrayBuffer();
+    const pdfDoc = await PDFDocument.load(arrayBuffer);
+    const pages = pdfDoc.getPages();
+    if (!pages.length) throw new Error('PDF has no pages');
+    const firstPage = pages[0];
+    const { width, height } = firstPage.getSize();
+    const bandHeight = 42;
+
+    firstPage.drawRectangle({
+        x: 0,
+        y: height - bandHeight,
+        width,
+        height: bandHeight,
+        color: rgb(26 / 255, 71 / 255, 49 / 255) // matches --kasu-green
+    });
+
+    // Try to embed the site logo on the left of the band, if one is set.
+    try {
+        const { data: logoSetting } = await db.from('settings').select('value').eq('key', 'site_logo_url').single();
+        const logoUrl = logoSetting && logoSetting.value;
+        if (logoUrl) {
+            const logoResp = await fetch(logoUrl);
+            const logoBytes = await logoResp.arrayBuffer();
+            let logoImage;
+            try { logoImage = await pdfDoc.embedPng(logoBytes); }
+            catch { logoImage = await pdfDoc.embedJpg(logoBytes); }
+            const logoSize = bandHeight - 12;
+            const scale = logoSize / logoImage.height;
+            firstPage.drawImage(logoImage, {
+                x: 12,
+                y: height - bandHeight + 6,
+                width: logoImage.width * scale,
+                height: logoSize
+            });
+        }
+    } catch (logoErr) {
+        console.warn('Could not embed logo into cover stamp (continuing without it):', logoErr);
+    }
+
+    const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const label = `KJSSS · Vol. ${meta.volume}${meta.issue ? ', Issue ' + meta.issue : ''} (${meta.year})`;
+    const fontSize = 11;
+    const textWidth = font.widthOfTextAtSize(label, fontSize);
+
+    firstPage.drawText(label, {
+        x: width - textWidth - 16,
+        y: height - bandHeight / 2 - fontSize / 2 + 2,
+        size: fontSize,
+        font,
+        color: rgb(1, 1, 1)
+    });
+
+    const stampedBytes = await pdfDoc.save();
+    return new Blob([stampedBytes], { type: 'application/pdf' });
+}
+
 async function publishSubmissionToJournal(id) {
     try {
         const { data: sub, error } = await db.from('submissions').select('*').eq('id', id).single();
@@ -344,6 +409,8 @@ async function publishSubmissionToJournal(id) {
 
         const volume = prompt('Volume number for this issue:', '');
         if (volume === null) return; // cancelled
+        const issue = prompt('Issue number (optional — leave blank if none):', '');
+        if (issue === null) return; // cancelled
         const year = prompt('Publication year:', String(new Date().getFullYear()));
         if (year === null) return; // cancelled
 
@@ -352,8 +419,26 @@ async function publishSubmissionToJournal(id) {
             const { data: fileBlob, error: dlErr } = await db.storage.from('manuscripts').download(sub.manuscript_path);
             if (dlErr) throw new Error('Could not download manuscript: ' + dlErr.message);
 
-            const destPath = `published_${Date.now()}_${sub.manuscript_filename || 'manuscript.docx'}`;
-            const { error: upErr } = await db.storage.from('journal-pdfs').upload(destPath, fileBlob, { upsert: false });
+            const isPdf = /\.pdf$/i.test(sub.manuscript_filename || '') || fileBlob.type === 'application/pdf';
+            let fileToUpload = fileBlob;
+
+            if (isPdf) {
+                try {
+                    fileToUpload = await stampJournalCoverPage(fileBlob, {
+                        volume: parseInt(volume) || 1,
+                        issue: issue ? parseInt(issue) : null,
+                        year: parseInt(year) || new Date().getFullYear()
+                    });
+                } catch (stampErr) {
+                    console.error('Cover-page stamping failed, publishing original file instead:', stampErr);
+                    showToast('Could not brand the cover page — publishing the original file instead.', 'error');
+                }
+            } else {
+                showToast('File is not a PDF — publishing without the automatic cover branding.', 'info');
+            }
+
+            const destPath = `published_${Date.now()}_${sub.manuscript_filename || 'manuscript.pdf'}`;
+            const { error: upErr } = await db.storage.from('journal-pdfs').upload(destPath, fileToUpload, { upsert: false });
             if (upErr) throw new Error('Could not copy manuscript to public journals bucket: ' + upErr.message);
 
             const { data: { publicUrl } } = db.storage.from('journal-pdfs').getPublicUrl(destPath);
@@ -378,6 +463,7 @@ async function publishSubmissionToJournal(id) {
             authors: sub.author_name,
             abstract: sub.abstract,
             volume: parseInt(volume) || 1,
+            issue: issue ? parseInt(issue) : null,
             year: parseInt(year) || new Date().getFullYear(),
             published_date: new Date().toISOString().slice(0, 10),
             tags,
@@ -506,13 +592,36 @@ async function viewReviewsForSubmission(submissionId) {
             return;
         }
 
-        const summary = data.map((r, i) =>
-            `Review ${i + 1}\nRecommendation: ${r.recommendation}\nComments to editor: ${r.comments_to_editor || '—'}\nComments to author: ${r.comments_to_author || '—'}\n`
-        ).join('\n---\n');
-
-        alert(summary);
+        // A modal, not alert() — alert() can't render a clickable download
+        // link for a reviewer's optional attachment.
+        const modal = document.createElement('div');
+        modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;display:flex;align-items:center;justify-content:center;padding:2rem;overflow-y:auto;';
+        modal.innerHTML = `<div style="background:white;border-radius:12px;max-width:640px;width:100%;max-height:85vh;overflow-y:auto;padding:2rem;position:relative;">
+            <button onclick="this.closest('div[style*=fixed]').remove()" style="position:sticky;top:0;float:right;background:none;border:none;font-size:24px;cursor:pointer;">✕</button>
+            <h2 style="font-family:'Playfair Display',serif;font-size:1.4rem;margin-bottom:1.25rem;color:var(--kasu-green);">Submitted Reviews (${data.length})</h2>
+            ${data.map((r, i) => `
+                <div style="border:1px solid var(--border);border-radius:8px;padding:1rem 1.25rem;margin-bottom:1rem;">
+                    <div style="font-weight:600;font-size:13.5px;margin-bottom:6px;">Review ${i + 1} — <span style="text-transform:capitalize;">${r.recommendation.replace('_', ' ')}</span></div>
+                    <div style="font-size:13px;color:var(--text-secondary);margin-bottom:6px;"><strong>To Editor:</strong> ${r.comments_to_editor || '—'}</div>
+                    <div style="font-size:13px;color:var(--text-secondary);margin-bottom:${r.attachment_path ? '10px' : '0'};"><strong>To Author:</strong> ${r.comments_to_author || '—'}</div>
+                    ${r.attachment_path ? `<button type="button" class="edit-btn" style="padding:4px 10px;border:none;border-radius:4px;cursor:pointer;font-size:12px;" onclick="downloadReviewAttachment('${r.attachment_path}')">📎 ${r.attachment_filename || 'Download Attachment'}</button>` : ''}
+                </div>
+            `).join('')}
+        </div>`;
+        document.body.appendChild(modal);
+        modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
     } catch (e) {
         showToast(e.message || 'Error loading reviews', 'error');
+    }
+}
+
+async function downloadReviewAttachment(path) {
+    try {
+        const { data, error } = await db.storage.from('review-attachments').createSignedUrl(path, 60);
+        if (error) throw error;
+        window.open(data.signedUrl, '_blank');
+    } catch (e) {
+        showToast('Error generating download link', 'error');
     }
 }
 
@@ -569,6 +678,7 @@ async function adminSaveJournal(e) {
             authors: document.getElementById('ajAuthors').value,
             abstract: document.getElementById('ajAbstract').value,
             volume: parseInt(document.getElementById('ajVolume').value),
+            issue: document.getElementById('ajIssue').value ? parseInt(document.getElementById('ajIssue').value) : null,
             year: parseInt(document.getElementById('ajYear').value),
             published_date: document.getElementById('ajDate').value,
             tags: document.getElementById('ajTags').value.split(',').map(t => t.trim()).filter(Boolean),
