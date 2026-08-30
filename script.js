@@ -296,7 +296,10 @@ async function renderReviewerPage() {
                 <p class="assignment-field"><strong>Abstract:</strong> ${s.abstract}</p>
                 <p class="assignment-field"><strong>Keywords:</strong> ${s.keywords || '—'}</p>
                 <p class="assignment-field"><strong>AI Tool Disclosure:</strong> ${s.ai_tools_disclosure || 'None stated'}</p>
-                ${s.manuscript_path ? `<button type="button" class="btn-outline-dark" style="font-size:12px;padding:6px 14px;margin-bottom:0.5rem;" onclick="downloadManuscriptAsReviewer('${s.manuscript_path}')">📄 Download Manuscript</button>` : ''}
+                ${s.manuscript_path ? `
+                    <button type="button" class="btn-outline-dark" style="font-size:12px;padding:6px 14px;margin-bottom:0.75rem;" onclick="viewManuscriptAsReviewer('${s.manuscript_path}', 'manuscriptViewer_${s.id}')">📄 View Manuscript</button>
+                    <div id="manuscriptViewer_${s.id}" style="margin-bottom:0.75rem;"></div>
+                ` : ''}
 
                 ${alreadyReviewed
                     ? `<div class="review-complete-banner" style="margin-top:1rem;">✅ You've already submitted your review for this manuscript.</div>`
@@ -319,16 +322,62 @@ async function renderReviewerPage() {
                             <label>Comments to Author</label>
                             <textarea id="reviewAuthorComments_${s.id}" rows="2"></textarea>
                         </div>
+                        <div class="field-group">
+                            <label>Attach a File (optional — e.g. a marked-up copy)</label>
+                            <div id="reviewAttachUpload_${s.id}" style="color:#767676;font-size:13px;padding:0.75rem;border:1px dashed #D8D8D8;border-radius:6px;">Loading upload control…</div>
+                            <input type="hidden" id="reviewAttachPath_${s.id}">
+                            <input type="hidden" id="reviewAttachName_${s.id}">
+                        </div>
                         <button type="submit" class="btn-primary" style="font-size:13px;padding:8px 18px;">Submit Review</button>
                     </form>`
                 }
             </div>`;
         }).join('');
+
+        // Wire up an optional-attachment upload control for each
+        // not-yet-reviewed assignment. Built dynamically since these cards
+        // themselves are rendered dynamically, one per assignment.
+        data.forEach(s => {
+            if (reviewedIds.has(s.id)) return;
+            const containerId = `reviewAttachUpload_${s.id}`;
+            if (!document.getElementById(containerId)) return;
+            const uploader = new FileUpload({
+                bucket: 'review-attachments',
+                accept: '.pdf,.doc,.docx',
+                label: '📎 Attach File',
+                maxSize: 20 * 1024 * 1024,
+                containerId: `reviewAttach_${s.id}`,
+                isPrivate: true,
+                onUpload: (path, url, fileName) => {
+                    document.getElementById(`reviewAttachPath_${s.id}`).value = path;
+                    document.getElementById(`reviewAttachName_${s.id}`).value = fileName;
+                    showToast('File attached!', 'success');
+                },
+            });
+            document.getElementById(containerId).innerHTML = uploader.render();
+            uploader.init();
+        });
     } catch (e) {
         console.error('Error loading reviewer assignments:', e);
         container.innerHTML = '<p style="color:#dc2626;">Could not load your assignments. Please refresh.</p>';
     }
 }
+
+// Shows the manuscript inline (rather than forcing a download) using a
+// short-lived signed URL, since the manuscripts bucket is private.
+async function viewManuscriptAsReviewer(path, targetContainerId) {
+    const container = document.getElementById(targetContainerId);
+    if (!container) return;
+    container.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Loading document...</div>';
+    try {
+        const { data, error } = await db.storage.from('manuscripts').createSignedUrl(path, 600);
+        if (error) throw error;
+        container.innerHTML = renderDocumentViewer(data.signedUrl, 'Manuscript');
+    } catch (e) {
+        container.innerHTML = '<p style="color:#dc2626;font-size:13px;">Could not load the document.</p>';
+    }
+}
+
 
 // Quick profile edit for reviewers (name, affiliation, expertise, bio) —
 // a lightweight prompt-based flow rather than a full form, since reviewers
@@ -378,13 +427,19 @@ async function submitReview(e, submissionId) {
         const recommendation = document.getElementById(`reviewRec_${submissionId}`).value;
         const comments_to_editor = document.getElementById(`reviewEditorComments_${submissionId}`).value || null;
         const comments_to_author = document.getElementById(`reviewAuthorComments_${submissionId}`).value || null;
+        const attachPathEl = document.getElementById(`reviewAttachPath_${submissionId}`);
+        const attachNameEl = document.getElementById(`reviewAttachName_${submissionId}`);
+        const attachment_path = (attachPathEl && attachPathEl.value) || null;
+        const attachment_filename = (attachNameEl && attachNameEl.value) || null;
 
         const { error } = await db.from('reviews').insert({
             submission_id: submissionId,
             reviewer_id: currentUser.id,
             recommendation,
             comments_to_editor,
-            comments_to_author
+            comments_to_author,
+            attachment_path,
+            attachment_filename
         });
         if (error) throw error;
 
@@ -855,7 +910,7 @@ function renderJournalCard(a) {
         : '';
     return `<div class="journal-card">
         <div class="journal-meta">
-            <span class="journal-vol">Vol. ${a.volume} · ${a.year}</span>
+            <span class="journal-vol">Vol. ${a.volume}${a.issue ? ', Issue ' + a.issue : ''} · ${a.year}</span>
             <span class="journal-year">${formatDate(a.published_date)}</span>
         </div>
         <h3>${a.title}</h3>
@@ -936,6 +991,27 @@ function navigateToArticle(slug, replace) {
 
 let currentArticle = null; // the journal row currently shown on the article page
 
+// Renders an in-page document viewer for a public file URL, so readers can
+// read the full article without being forced to download it first. PDFs
+// embed directly (browsers render these natively); Word docs go through
+// Microsoft's public Office viewer, since browsers can't render .docx
+// inline on their own. A download link is always included alongside.
+function renderDocumentViewer(fileUrl, title) {
+    if (!fileUrl) {
+        return '<p style="font-size:13px;color:var(--text-muted);">No downloadable file available for this article.</p>';
+    }
+    const isPdf = /\.pdf(\?|$)/i.test(fileUrl);
+    const isWord = /\.(doc|docx)(\?|$)/i.test(fileUrl);
+    let embed = '';
+    if (isPdf) {
+        embed = `<iframe src="${fileUrl}" title="${title || 'Document'}" style="width:100%;height:75vh;border:1px solid var(--border);border-radius:8px;"></iframe>`;
+    } else if (isWord) {
+        const viewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`;
+        embed = `<iframe src="${viewerUrl}" title="${title || 'Document'}" style="width:100%;height:75vh;border:1px solid var(--border);border-radius:8px;"></iframe>`;
+    }
+    return `${embed}<a href="${fileUrl}" target="_blank" class="btn-outline-dark" style="margin-top:1rem;display:inline-block;">⬇ Download File</a>`;
+}
+
 async function loadArticlePage(slug) {
     const headerEl = document.getElementById('articleHeaderContainer');
     const bodyEl = document.getElementById('articleBodyContainer');
@@ -957,7 +1033,7 @@ async function loadArticlePage(slug) {
             : '';
 
         headerEl.innerHTML = `
-            <span class="journal-vol">Vol. ${a.volume} · ${a.year}</span>
+            <span class="journal-vol">Vol. ${a.volume}${a.issue ? ', Issue ' + a.issue : ''} · ${a.year}</span>
             <h1>${a.title}</h1>
             <div class="authors-line">${authorsHtml}${orcidBadge}</div>
             <div class="badges-row">
@@ -969,9 +1045,7 @@ async function loadArticlePage(slug) {
         document.getElementById('articleAbstractText').textContent = a.abstract;
         document.getElementById('articleKeywordsList').innerHTML = (a.tags || [])
             .map(t => `<span class="badge badge-sociology">${t}</span>`).join('');
-        document.getElementById('articlePdfLinkWrap').innerHTML = a.pdf_url
-            ? `<a href="${a.pdf_url}" target="_blank" class="btn-primary">📄 Download Full Article</a>`
-            : '<p style="font-size:13px;color:var(--text-muted);">No downloadable file available for this article.</p>';
+        document.getElementById('articlePdfLinkWrap').innerHTML = renderDocumentViewer(a.pdf_url, a.title);
         bodyEl.style.display = 'block';
 
         switchCitationFormat('apa');
@@ -985,13 +1059,15 @@ async function loadArticlePage(slug) {
 // ─── CITATIONS ────────────────────────────────────────
 function buildApaCitation(a) {
     const authors = a.authors || 'Unknown Author';
-    return `${authors} (${a.year}). ${a.title}. KASU Journal of Sociology & Social Sciences, ${a.volume}.`;
+    const volIssue = a.issue ? `${a.volume}(${a.issue})` : `${a.volume}`;
+    return `${authors} (${a.year}). ${a.title}. KASU Journal of Sociology & Social Sciences, ${volIssue}.`;
 }
 
 function buildBibtexCitation(a) {
     const key = (a.slug || 'article').replace(/[^a-z0-9]/gi, '');
     const authors = (a.authors || 'Unknown Author').replace(/;/g, ' and');
-    return `@article{${key}${a.year},\n  title={${a.title}},\n  author={${authors}},\n  journal={KASU Journal of Sociology \\& Social Sciences},\n  volume={${a.volume}},\n  year={${a.year}}\n}`;
+    const numberLine = a.issue ? `\n  number={${a.issue}},` : '';
+    return `@article{${key}${a.year},\n  title={${a.title}},\n  author={${authors}},\n  journal={KASU Journal of Sociology \\& Social Sciences},\n  volume={${a.volume}},${numberLine}\n  year={${a.year}}\n}`;
 }
 
 let currentCitationFormat = 'apa';
