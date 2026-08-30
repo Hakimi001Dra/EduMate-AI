@@ -477,22 +477,31 @@
         .news-list { display: flex; flex-direction: column; gap: 1.25rem; }
         .news-item {
             display: flex;
-            gap: 1rem;
-            padding: 1.25rem;
+            gap: 1.1rem;
+            padding: 1.1rem;
             background: var(--bg-white);
-            border-radius: 8px;
+            border-radius: 10px;
             border: 1px solid var(--border);
             transition: border-color 0.2s, box-shadow 0.2s;
+            align-items: flex-start;
         }
+        .news-item:hover { border-color: var(--kasu-green); box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
         .news-item-image {
-            width: 84px;
-            height: 84px;
-            border-radius: 6px;
+            width: 96px;
+            height: 96px;
+            border-radius: 8px;
             overflow: hidden;
             flex-shrink: 0;
+            background: var(--bg-cream);
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        .news-item-image img { width: 100%; height: 100%; object-fit: cover; display: block; }
-        .news-item:hover { border-color: var(--kasu-green); box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
+        /* object-fit: contain — shows the entire uploaded image with no
+           cropping, letterboxed on the cream background if its aspect
+           ratio doesn't perfectly match the square frame. */
+        .news-item-image img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; display: block; }
+        .news-item-content { flex: 1; min-width: 0; }
         .news-date-block {
             background: var(--kasu-green);
             color: #fff;
@@ -606,9 +615,11 @@
             color: var(--kasu-gold);
         }
         .faculty-photo img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            object-fit: contain;
         }
         .faculty-info { padding: 1rem; }
         .faculty-info h4 {
