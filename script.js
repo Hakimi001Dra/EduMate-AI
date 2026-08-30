@@ -895,7 +895,7 @@ function renderNewsItem(n) {
     return `<div class="news-item">
         ${imageHtml}
         <div class="news-date-block"><span class="day">${d.getDate()}</span><span class="month">${mn[d.getMonth()]}</span></div>
-        <div><span class="news-type ${tc}">${n.type}</span><h4>${n.title}</h4><p>${n.description}</p></div>
+        <div class="news-item-content"><span class="news-type ${tc}">${n.type}</span><h4>${n.title}</h4><p>${n.description}</p></div>
     </div>`;
 }
 
