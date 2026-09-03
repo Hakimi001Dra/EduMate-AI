@@ -33,6 +33,18 @@ async function init() {
         await initSupabaseWithRetry();
         initFileUploads();
 
+        // Supabase fires this specific event when someone lands here via a
+        // password-reset email link — show the "set new password" form
+        // instead of running the normal admin-role check.
+        db.auth.onAuthStateChange((event) => {
+            if (event === 'PASSWORD_RECOVERY') {
+                showAdminLoginView();
+                document.getElementById('adminLoginForm').style.display = 'none';
+                document.getElementById('adminForgotForm').style.display = 'none';
+                document.getElementById('adminResetPasswordForm').style.display = 'block';
+            }
+        });
+
         const { data } = await db.auth.getSession();
         if (data.session) {
             const isAdmin = await verifyAdminAccess(data.session);
@@ -104,11 +116,13 @@ async function loadAdminSettings() {
     // Admin's own name/title, stored on their profiles row (not in settings)
     if (adminSession) {
         try {
-            const { data: profile } = await db.from('profiles').select('full_name, title').eq('id', adminSession.user.id).single();
+            const { data: profile } = await db.from('profiles').select('full_name, title, avatar_url').eq('id', adminSession.user.id).single();
             const nameField = document.getElementById('setAdminName');
             const titleField = document.getElementById('setAdminTitle');
+            const avatarUrlField = document.getElementById('setAdminAvatarUrl');
             if (nameField) nameField.value = (profile && profile.full_name) || '';
             if (titleField) titleField.value = (profile && profile.title) || '';
+            if (avatarUrlField) avatarUrlField.value = (profile && profile.avatar_url) || '';
         } catch (e) { console.warn('Could not load admin profile:', e.message); }
     }
 
@@ -158,6 +172,57 @@ async function adminLogin(e) {
         loadAdminDashboard();
         loadAdminIdentity();
     } catch (e) { err.textContent = e.message || 'Invalid credentials'; err.style.display = 'block'; }
+}
+
+// ─── PASSWORD RESET (admin) ───────────────────────────
+function showAdminForgotForm() {
+    document.getElementById('adminLoginForm').style.display = 'none';
+    document.getElementById('adminForgotForm').style.display = 'block';
+}
+
+function hideAdminForgotForm() {
+    document.getElementById('adminForgotForm').style.display = 'none';
+    document.getElementById('adminLoginForm').style.display = 'block';
+}
+
+async function sendAdminPasswordReset(e) {
+    e.preventDefault();
+    const errEl = document.getElementById('adminForgotError');
+    const successEl = document.getElementById('adminForgotSuccess');
+    errEl.style.display = 'none';
+    successEl.style.display = 'none';
+    try {
+        if (!db) await initSupabaseWithRetry(8, 250);
+        const email = document.getElementById('adminForgotEmail').value;
+        const redirectTo = window.location.origin + window.location.pathname;
+        const { error } = await db.auth.resetPasswordForEmail(email, { redirectTo });
+        if (error) throw error;
+        successEl.textContent = 'If an account exists for that email, a reset link has been sent. Check your inbox (and spam folder).';
+        successEl.style.display = 'block';
+        document.getElementById('adminForgotForm').reset();
+    } catch (err) {
+        errEl.textContent = err.message || 'Could not send reset link.';
+        errEl.style.display = 'block';
+    }
+}
+
+async function submitAdminNewPassword(e) {
+    e.preventDefault();
+    const errEl = document.getElementById('adminResetError');
+    errEl.style.display = 'none';
+    try {
+        const newPassword = document.getElementById('adminNewPasswordInput').value;
+        const { error } = await db.auth.updateUser({ password: newPassword });
+        if (error) throw error;
+        showToast('Password updated!', 'success');
+        document.getElementById('adminResetPasswordForm').style.display = 'none';
+        // Re-run init so the role check + dashboard load happen cleanly
+        // now that the account is properly authenticated again.
+        init();
+    } catch (err) {
+        errEl.textContent = err.message || 'Could not update password.';
+        errEl.style.display = 'block';
+    }
 }
 
 async function adminLogout() {
@@ -256,12 +321,11 @@ async function loadAdminSubmissions() {
                 <td>${s.email}</td>
                 <td>${s.research_area || '—'}</td>
                 <td>${s.manuscript_path ? `<button class="edit-btn" style="padding:4px 10px;border:none;border-radius:4px;cursor:pointer;font-size:12px;" onclick="downloadManuscript('${s.manuscript_path}')">📄 Download</button>` : '—'}</td>
-                <td>${s.status}${publishedNote}${notifiedNote}</td>
+                <td>${s.status}${publishedNote}</td>
                 <td><div class="actions">
                     <button class="edit-btn" onclick="updateSubmissionStatus('${s.id}','in_review')">In Review</button>
                     <button class="edit-btn" onclick="updateSubmissionStatus('${s.id}','accepted')">Accept</button>
                     <button class="delete-btn" onclick="updateSubmissionStatus('${s.id}','rejected')">Reject</button>
-                    <button class="edit-btn" onclick="resendSubmissionNotification('${s.id}')">🔔 Notify</button>
                     <button class="${publishBtnClass}" onclick="publishSubmissionToJournal('${s.id}')">${publishBtnLabel}</button>
                     <button class="edit-btn" onclick="assignReviewer('${s.id}')">🧑‍🔬 Assign Reviewer</button>
                     <button class="edit-btn" onclick="viewReviewsForSubmission('${s.id}')">📝 View Reviews</button>
@@ -272,23 +336,6 @@ async function loadAdminSubmissions() {
     } catch (e) { document.getElementById('adminSubmissionsList').innerHTML = '<p style="color:red;">Error loading submissions</p>'; }
 }
 
-// Manually re-sends the "new submission" admin notification email for a
-// submission — useful if the automatic one (sent right after the author
-// submits) failed for any reason.
-async function resendSubmissionNotification(id) {
-    try {
-        const { data: record, error } = await db.from('submissions').select('*').eq('id', id).single();
-        if (error) throw error;
-        await withTimeout(db.functions.invoke('notify-submission', { body: { record } }), 10000);
-        const { error: stampErr } = await db.from('submissions').update({ last_notified_at: new Date().toISOString() }).eq('id', id);
-        if (stampErr) console.error('Could not record last_notified_at:', stampErr);
-        showToast('Notification email sent', 'success');
-        loadAdminSubmissions();
-    } catch (e) {
-        showToast('Could not send notification: ' + (e.message || 'unknown error'), 'error');
-    }
-}
-
 async function downloadManuscript(path) {
     try {
         const { data, error } = await db.storage.from('manuscripts').createSignedUrl(path, 60);
@@ -297,26 +344,14 @@ async function downloadManuscript(path) {
     } catch (e) { showToast('Error generating download link', 'error'); }
 }
 
-// Updates a submission's status, then emails the AUTHOR to let them know.
-// .select().single() is safe here (unlike the anon insert case) because
-// logged-in admins already have a SELECT policy on submissions.
+// Updates a submission's status. (Email notification to the author has
+// been removed for now — status changes are visible to the author in
+// their own "My Submissions" dashboard when they log in.)
 async function updateSubmissionStatus(id, status) {
     try {
-        const { data: updated, error } = await db.from('submissions').update({ status }).eq('id', id).select().single();
+        const { error } = await db.from('submissions').update({ status }).eq('id', id);
         if (error) throw error;
         showToast(`Marked as ${status}`, 'success');
-
-        // Notify the author of the status change. If this fails (e.g. Resend
-        // not configured yet), the status update itself still succeeded —
-        // we just log it rather than blocking the admin action.
-        try {
-            await withTimeout(db.functions.invoke('notify-submission', { body: { type: 'status_update', record: updated } }), 10000);
-            const { error: stampErr } = await db.from('submissions').update({ last_notified_at: new Date().toISOString() }).eq('id', id);
-            if (stampErr) console.error('Could not record last_notified_at:', stampErr);
-        } catch (notifyErr) {
-            console.warn('Status updated, but author notification failed:', notifyErr.message);
-        }
-
         loadAdminSubmissions();
         loadAdminDashboard();
     } catch (e) { showToast('Error updating status', 'error'); }
@@ -806,11 +841,12 @@ async function adminSaveSettings(e) {
         siteSettings.submission_email = document.getElementById('setSubmissionEmail').value || 'kjsss@kasu.edu.ng';
         siteSettings.site_logo_url = document.getElementById('setSiteLogoUrl').value || null;
 
-        // Admin's own name/title live on their profiles row
+        // Admin's own name/title/photo live on their profiles row
         if (adminSession) {
             await db.from('profiles').update({
                 full_name: document.getElementById('setAdminName').value || null,
-                title: document.getElementById('setAdminTitle').value || null
+                title: document.getElementById('setAdminTitle').value || null,
+                avatar_url: document.getElementById('setAdminAvatarUrl').value || null
             }).eq('id', adminSession.user.id);
             loadAdminIdentity();
         }
