@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin — Department of Sociology, KASU</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%231A4731'/%3E%3Ctext x='50' y='64' font-family='Georgia,serif' font-size='42' font-weight='700' fill='%23C8941A' text-anchor='middle'%3ESΩC%3C/text%3E%3C/svg%3E">
     <!-- Keep this out of search results and off crawler radar -->
     <meta name="robots" content="noindex, nofollow, noarchive">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -30,6 +31,29 @@
                     </div>
                     <div id="adminLoginError" style="color:#dc2626;font-size:14px;margin-bottom:1rem;display:none;"></div>
                     <button type="submit" class="btn-primary">Login</button>
+                    <button type="button" onclick="showAdminForgotForm()" style="background:none;border:none;color:var(--kasu-green);font-size:12.5px;text-decoration:underline;cursor:pointer;padding:10px 0 0;display:block;width:100%;text-align:center;">Forgot your password?</button>
+                </form>
+
+                <form id="adminForgotForm" onsubmit="sendAdminPasswordReset(event)" style="display:none;">
+                    <p style="font-size:13.5px;color:var(--text-secondary);margin-bottom:1rem;">Enter your admin email — we'll send a link to reset your password.</p>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="adminForgotEmail" required>
+                    </div>
+                    <div id="adminForgotError" style="color:#dc2626;font-size:14px;margin-bottom:1rem;display:none;"></div>
+                    <div id="adminForgotSuccess" style="color:#16a34a;font-size:14px;margin-bottom:1rem;display:none;"></div>
+                    <button type="submit" class="btn-primary">Send Reset Link</button>
+                    <button type="button" onclick="hideAdminForgotForm()" style="background:none;border:none;color:var(--text-muted);font-size:12.5px;text-decoration:underline;cursor:pointer;padding:10px 0 0;display:block;width:100%;text-align:center;">← Back to Login</button>
+                </form>
+
+                <form id="adminResetPasswordForm" onsubmit="submitAdminNewPassword(event)" style="display:none;">
+                    <p style="font-size:13.5px;color:var(--text-secondary);margin-bottom:1rem;">Choose a new password for your admin account.</p>
+                    <div class="form-group">
+                        <label>New Password (min. 6 characters)</label>
+                        <input type="password" id="adminNewPasswordInput" minlength="6" required>
+                    </div>
+                    <div id="adminResetError" style="color:#dc2626;font-size:14px;margin-bottom:1rem;display:none;"></div>
+                    <button type="submit" class="btn-primary">Set New Password</button>
                 </form>
             </div>
         </div>
@@ -293,6 +317,12 @@
                                     <label>Your Title</label>
                                     <input type="text" id="setAdminTitle" placeholder="Editor-in-Chief">
                                 </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Your Profile Photo</label>
+                                <div id="adminAvatarUploadContainer" style="color:#767676;font-size:13px;padding:0.75rem;border:1px dashed #D8D8D8;border-radius:6px;">Loading upload control…</div>
+                                <input type="hidden" id="setAdminAvatarUrl">
+                                <p style="font-size:12px;color:var(--text-muted);margin-top:6px;">Shown in the admin sidebar and on the public Editorial Board page.</p>
                             </div>
                             <div class="form-group">
                                 <label>Site Name</label>
