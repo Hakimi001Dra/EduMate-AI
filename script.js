@@ -50,6 +50,19 @@ async function init() {
         await refreshCurrentUserRole();
 
         db.auth.onAuthStateChange(async (_event, session) => {
+            // Supabase fires this specific event when someone lands here via
+            // a password-reset email link. Show the "set new password" form
+            // instead of the normal logged-in view.
+            if (_event === 'PASSWORD_RECOVERY') {
+                showPage('submit');
+                document.getElementById('authGateContainer').style.display = 'block';
+                document.getElementById('authedSubmitContainer').style.display = 'none';
+                document.getElementById('authLoginForm').style.display = 'none';
+                document.getElementById('authForgotForm').style.display = 'none';
+                document.getElementById('authRegisterForm').style.display = 'none';
+                document.getElementById('authResetPasswordForm').style.display = 'block';
+                return;
+            }
             currentUser = session ? session.user : null;
             await refreshCurrentUserRole();
             renderSubmitPageAuthState();
@@ -170,6 +183,61 @@ async function authLogin(e) {
     }
 }
 
+// ─── PASSWORD RESET ───────────────────────────────────
+// Note: the reset link itself is sent by Supabase's own built-in auth
+// email sender (separate from any custom notification system), so
+// delivery reliability depends on Supabase's default email service unless
+// a custom SMTP has been configured in the Supabase dashboard.
+
+function showForgotPasswordForm() {
+    document.getElementById('authLoginForm').style.display = 'none';
+    document.getElementById('authForgotForm').style.display = 'block';
+}
+
+function hideForgotPasswordForm() {
+    document.getElementById('authForgotForm').style.display = 'none';
+    document.getElementById('authLoginForm').style.display = 'block';
+}
+
+async function sendPasswordReset(e) {
+    e.preventDefault();
+    const errEl = document.getElementById('authForgotError');
+    const successEl = document.getElementById('authForgotSuccess');
+    errEl.style.display = 'none';
+    successEl.style.display = 'none';
+    try {
+        if (!db) await initSupabaseWithRetry(8, 250);
+        const email = document.getElementById('forgotEmail').value;
+        const redirectTo = window.location.origin + window.location.pathname;
+        const { error } = await db.auth.resetPasswordForEmail(email, { redirectTo });
+        if (error) throw error;
+        successEl.textContent = 'If an account exists for that email, a reset link has been sent. Check your inbox (and spam folder).';
+        successEl.style.display = 'block';
+        document.getElementById('authForgotForm').reset();
+    } catch (err) {
+        errEl.textContent = err.message || 'Could not send reset link.';
+        errEl.style.display = 'block';
+    }
+}
+
+async function submitNewPassword(e) {
+    e.preventDefault();
+    const errEl = document.getElementById('authResetError');
+    errEl.style.display = 'none';
+    try {
+        const newPassword = document.getElementById('newPasswordInput').value;
+        const { error } = await db.auth.updateUser({ password: newPassword });
+        if (error) throw error;
+        showToast('Password updated — you are now logged in.', 'success');
+        document.getElementById('authResetPasswordForm').style.display = 'none';
+        document.getElementById('authGateContainer').style.display = 'none';
+        renderSubmitPageAuthState();
+    } catch (err) {
+        errEl.textContent = err.message || 'Could not update password.';
+        errEl.style.display = 'block';
+    }
+}
+
 async function authRegister(e) {
     e.preventDefault();
     const errEl = document.getElementById('authRegisterError');
@@ -247,12 +315,28 @@ async function renderReviewerPage() {
             const { data: profile } = await db.from('profiles').select('*').eq('id', currentUser.id).single();
             const nameEl = document.getElementById('reviewerNameDisplay');
             const avatarEl = document.getElementById('reviewerAvatarDisplay');
-            if (nameEl) nameEl.textContent = profile.full_name || currentUser.email;
+            const affEl = document.getElementById('reviewerAffiliationDisplay');
+            const bioEl = document.getElementById('reviewerBioDisplay');
+            if (nameEl) nameEl.textContent = profile.full_name || 'Add your name — click Edit Profile';
+            if (affEl) affEl.textContent = profile.affiliation || '';
+            if (bioEl) bioEl.textContent = profile.bio || '';
             if (avatarEl) {
                 avatarEl.innerHTML = profile.avatar_url
                     ? `<img src="${profile.avatar_url}" alt="" style="width:100%;height:100%;object-fit:cover;">`
                     : initialsFromName(profile.full_name || currentUser.email);
             }
+
+            // Pre-fill the edit form too
+            const fullNameInput = document.getElementById('reviewerFullName');
+            const affInput = document.getElementById('reviewerAffiliation');
+            const expertiseInput = document.getElementById('reviewerExpertise');
+            const bioInput = document.getElementById('reviewerBio');
+            const avatarUrlInput = document.getElementById('reviewerAvatarUrl');
+            if (fullNameInput) fullNameInput.value = profile.full_name || '';
+            if (affInput) affInput.value = profile.affiliation || '';
+            if (expertiseInput) expertiseInput.value = profile.expertise || '';
+            if (bioInput) bioInput.value = profile.bio || '';
+            if (avatarUrlInput) avatarUrlInput.value = profile.avatar_url || '';
 
             const statStripEl = document.getElementById('reviewerStatStrip');
             if (statStripEl) {
@@ -382,29 +466,34 @@ async function viewManuscriptAsReviewer(path, targetContainerId) {
 // Quick profile edit for reviewers (name, affiliation, expertise, bio) —
 // a lightweight prompt-based flow rather than a full form, since reviewers
 // only need to set this occasionally.
-async function editReviewerProfile() {
+function toggleReviewerProfileEdit() {
+    const viewMode = document.getElementById('reviewerProfileViewMode');
+    const editForm = document.getElementById('reviewerProfileEditForm');
+    const isEditing = editForm.style.display !== 'none';
+    if (isEditing) {
+        editForm.style.display = 'none';
+        viewMode.style.display = 'block';
+    } else {
+        viewMode.style.display = 'none';
+        editForm.style.display = 'block';
+    }
+}
+
+async function saveReviewerProfile(e) {
+    e.preventDefault();
     if (!currentUser) return;
     try {
-        const { data: profile } = await db.from('profiles').select('*').eq('id', currentUser.id).single();
-
-        const fullName = prompt('Full name:', profile.full_name || '');
-        if (fullName === null) return;
-        const affiliation = prompt('Institutional affiliation:', profile.affiliation || '');
-        if (affiliation === null) return;
-        const expertise = prompt('Areas of research expertise (comma separated):', profile.expertise || '');
-        if (expertise === null) return;
-        const bio = prompt('Short bio:', profile.bio || '');
-        if (bio === null) return;
-
-        const { error } = await db.from('profiles').update({
-            full_name: fullName,
-            affiliation: affiliation || null,
-            expertise: expertise || null,
-            bio: bio || null
-        }).eq('id', currentUser.id);
+        const updates = {
+            full_name: document.getElementById('reviewerFullName').value,
+            affiliation: document.getElementById('reviewerAffiliation').value || null,
+            expertise: document.getElementById('reviewerExpertise').value || null,
+            bio: document.getElementById('reviewerBio').value || null,
+            avatar_url: document.getElementById('reviewerAvatarUrl').value || null,
+        };
+        const { error } = await db.from('profiles').update(updates).eq('id', currentUser.id);
         if (error) throw error;
-
-        showToast('Profile updated!', 'success');
+        showToast('Profile saved!', 'success');
+        toggleReviewerProfileEdit();
         renderReviewerPage();
     } catch (e) {
         showToast(e.message || 'Error updating profile', 'error');
@@ -516,15 +605,31 @@ async function loadMySubmissions() {
             rejected: 'Rejected'
         };
 
-        container.innerHTML = data.map(s => `
+        // Compare against the PREVIOUS "last viewed" time (before we update
+        // it below) so a badge shows for anything that changed since the
+        // author last actually looked at this list — this is the whole
+        // notification mechanism now that there's no email.
+        container.innerHTML = data.map(s => {
+            const isUpdated = s.status_updated_at &&
+                (!s.author_last_viewed_at || new Date(s.status_updated_at) > new Date(s.author_last_viewed_at));
+            return `
             <div class="submission-item">
                 <div>
-                    <div class="title">${s.title}</div>
+                    <div class="title">${s.title} ${isUpdated ? '<span style="font-size:10.5px;font-weight:700;color:#fff;background:#3b82f6;padding:2px 8px;border-radius:100px;margin-left:6px;vertical-align:middle;">● UPDATED</span>' : ''}</div>
                     <div class="meta">Submitted ${formatDate(s.created_at)}${s.research_area ? ' · ' + s.research_area : ''}</div>
                 </div>
                 <span class="status-pill status-${s.status}">${statusLabels[s.status] || s.status}</span>
             </div>
-        `).join('');
+        `;
+        }).join('');
+
+        // Now that badges are rendered based on the old timestamp, mark
+        // everything as viewed for next time. Uses a narrow RPC function
+        // rather than a direct update, since authors have no general
+        // UPDATE permission on submissions (by design).
+        const ids = data.map(s => s.id);
+        db.rpc('mark_submissions_viewed', { submission_ids: ids })
+            .then(({ error: viewErr }) => { if (viewErr) console.warn('Could not mark submissions as viewed:', viewErr); });
     } catch (e) {
         console.error('Error loading my submissions:', e);
         container.innerHTML = '<p style="color:#dc2626;font-size:14px;">Could not load your submissions. Please refresh.</p>';
@@ -747,16 +852,21 @@ async function refreshAllData() {
 
     // If the page was opened directly at a shared article or section link
     // (e.g. index.html?article=some-slug or ?section=Urban%20Sociology),
-    // open straight to it.
+    // open straight to it. A plain ?page=journals style link (used in
+    // sitemap.xml) opens that named page directly too.
     const params = new URLSearchParams(window.location.search);
     const sharedSlug = params.get('article');
     const sharedSection = params.get('section');
+    const sharedPage = params.get('page');
+    const VALID_DIRECT_PAGES = ['home', 'journals', 'sections', 'editorial-board', 'about-journal', 'for-authors', 'faculty', 'news', 'programmes'];
     if (sharedSlug) {
         showPage('article');
         loadArticlePage(sharedSlug);
     } else if (sharedSection) {
         showPage('section-detail');
         loadSectionDetail(sharedSection);
+    } else if (sharedPage && VALID_DIRECT_PAGES.includes(sharedPage)) {
+        showPage(sharedPage);
     }
 }
 
@@ -1004,10 +1114,10 @@ function renderDocumentViewer(fileUrl, title) {
     const isWord = /\.(doc|docx)(\?|$)/i.test(fileUrl);
     let embed = '';
     if (isPdf) {
-        embed = `<iframe src="${fileUrl}" title="${title || 'Document'}" style="width:100%;height:75vh;border:1px solid var(--border);border-radius:8px;"></iframe>`;
+        embed = `<iframe src="${fileUrl}" title="${title || 'Document'}" style="width:100%;height:min(75vh, 650px);border:1px solid var(--border);border-radius:8px;"></iframe>`;
     } else if (isWord) {
         const viewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`;
-        embed = `<iframe src="${viewerUrl}" title="${title || 'Document'}" style="width:100%;height:75vh;border:1px solid var(--border);border-radius:8px;"></iframe>`;
+        embed = `<iframe src="${viewerUrl}" title="${title || 'Document'}" style="width:100%;height:min(75vh, 650px);border:1px solid var(--border);border-radius:8px;"></iframe>`;
     }
     return `${embed}<a href="${fileUrl}" target="_blank" class="btn-outline-dark" style="margin-top:1rem;display:inline-block;">⬇ Download File</a>`;
 }
@@ -1127,7 +1237,7 @@ async function renderEditorialBoard() {
             const avatar = m.avatar_url
                 ? `<img src="${m.avatar_url}" alt="${m.full_name}" style="width:100%;height:100%;object-fit:cover;">`
                 : initialsFromName(m.full_name);
-            return `<div class="board-card">
+            return `<div class="member-card">
                 <div class="${sealClass}">${avatar}</div>
                 <div class="board-name">${m.full_name}</div>
                 <span class="${plaqueClass}">${roleLabel}</span>
@@ -1332,16 +1442,9 @@ async function submitPaper(e) {
         };
 
         // Deliberately not chaining .select() here — read-back after insert
-        // is subject to RLS too, and it isn't needed since we already have
-        // the payload in hand for the notification email below.
+        // is subject to RLS too, and isn't needed for anything downstream.
         const { error } = await db.from('submissions').insert(payload);
         if (error) throw error;
-
-        try {
-            await withTimeout(db.functions.invoke('notify-submission', { body: { record: payload } }), 10000);
-        } catch (notifyErr) {
-            console.warn('Submission saved, but admin notification email failed:', notifyErr.message);
-        }
 
         showToast('Thank you! Your submission has been received.', 'success');
         e.target.reset();
