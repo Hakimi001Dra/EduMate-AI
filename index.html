@@ -3,17 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Department of Sociology — Kaduna State University | KJSSS Journal</title>
-    <meta name="description" content="The Department of Sociology at Kaduna State University publishes the KJSSS peer-reviewed journal and hosts sociological research on urbanisation, gender, policy, and social development in Northern Nigeria. Explore faculty, programmes, news, and submission guidelines.">
+    <title>KJSSS — KASU Journal of Sociology & Social Sciences</title>
+    <meta name="description" content="The KASU Journal of Sociology & Social Sciences (KJSSS) is an open-access, double-blind peer-reviewed journal publishing original sociological research from Kaduna State University and scholars worldwide.">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://sociology-kasu.com.ng/">
 
+    <!-- Favicon — inline SVG monogram, no external image asset needed -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%231A4731'/%3E%3Ctext x='50' y='64' font-family='Georgia,serif' font-size='42' font-weight='700' fill='%23C8941A' text-anchor='middle'%3ESΩC%3C/text%3E%3C/svg%3E">
+
     <!-- Open Graph / social sharing -->
     <meta property="og:type" content="website">
-    <meta property="og:title" content="Department of Sociology — Kaduna State University">
-    <meta property="og:description" content="Peer-reviewed sociological research, faculty, programmes, and the KJSSS journal from the Department of Sociology, Kaduna State University.">
+    <meta property="og:title" content="KJSSS — KASU Journal of Sociology & Social Sciences">
+    <meta property="og:description" content="Open-access, double-blind peer-reviewed journal publishing original sociological research from Kaduna State University and scholars worldwide.">
     <meta property="og:url" content="https://sociology-kasu.com.ng/">
-    <meta property="og:site_name" content="Department of Sociology, KASU">
+    <meta property="og:site_name" content="KJSSS">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="KJSSS — KASU Journal of Sociology & Social Sciences">
+    <meta name="twitter:description" content="Open-access, double-blind peer-reviewed journal publishing original sociological research.">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -44,7 +50,7 @@
             <span>Department of Sociology, Kaduna State University</span>
             <div class="links">
                 <a href="https://www.kasu.edu.ng" target="_blank" rel="noopener" id="kasuMainLink">kasu.edu.ng</a>
-               
+                <a id="adminLink" href="admin.html">Editorial Login</a>
             </div>
         </div>
     </div>
@@ -376,7 +382,7 @@
         </div>
         <section class="section-padding section-alt">
             <div class="container-custom">
-                <div class="board-grid" id="editorialBoardGrid">
+                <div class="member-grid" id="editorialBoardGrid">
                     <div class="loading"><div class="loading-spinner"></div>Loading...</div>
                 </div>
             </div>
@@ -622,6 +628,29 @@
                         </div>
                         <div id="authLoginError" class="auth-alert error" style="display:none;"></div>
                         <button type="submit" class="btn-primary">Log In</button>
+                        <button type="button" onclick="showForgotPasswordForm()" style="background:none;border:none;color:var(--kasu-green);font-size:12.5px;text-decoration:underline;cursor:pointer;padding:10px 0 0;display:block;">Forgot your password?</button>
+                    </form>
+
+                    <form id="authForgotForm" onsubmit="sendPasswordReset(event)" style="display:none;">
+                        <p style="font-size:13.5px;color:var(--text-secondary);margin-bottom:1rem;">Enter your account email — we'll send a link to reset your password.</p>
+                        <div class="field-group">
+                            <label>Email</label>
+                            <input type="email" id="forgotEmail" required>
+                        </div>
+                        <div id="authForgotError" class="auth-alert error" style="display:none;"></div>
+                        <div id="authForgotSuccess" class="auth-alert success" style="display:none;"></div>
+                        <button type="submit" class="btn-primary">Send Reset Link</button>
+                        <button type="button" onclick="hideForgotPasswordForm()" style="background:none;border:none;color:var(--text-muted);font-size:12.5px;text-decoration:underline;cursor:pointer;padding:10px 0 0;display:block;">← Back to Log In</button>
+                    </form>
+
+                    <form id="authResetPasswordForm" onsubmit="submitNewPassword(event)" style="display:none;">
+                        <p style="font-size:13.5px;color:var(--text-secondary);margin-bottom:1rem;">Choose a new password for your account.</p>
+                        <div class="field-group">
+                            <label>New Password (min. 6 characters)</label>
+                            <input type="password" id="newPasswordInput" minlength="6" required>
+                        </div>
+                        <div id="authResetError" class="auth-alert error" style="display:none;"></div>
+                        <button type="submit" class="btn-primary">Set New Password</button>
                     </form>
 
                     <form id="authRegisterForm" onsubmit="authRegister(event)" style="display:none;">
@@ -794,13 +823,46 @@
                             <div>
                                 <div id="reviewerNameDisplay" class="credential-name">Loading…</div>
                                 <span class="role-plaque role-plaque--reviewer">PEER REVIEWER</span>
-                                <button type="button" onclick="editReviewerProfile()" class="credential-edit-link">Edit Profile</button>
+                                <div id="reviewerAffiliationDisplay" class="credential-meta"></div>
                                 <div id="reviewerUserEmail" class="credential-meta"></div>
                             </div>
                         </div>
-                        <button type="button" class="btn-outline-dark" onclick="authLogout()" style="padding:6px 16px;font-size:13px;">Log Out</button>
+                        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                            <button type="button" id="reviewerEditToggleBtn" onclick="toggleReviewerProfileEdit()" class="btn-outline-dark" style="padding:6px 16px;font-size:13px;">Edit Profile</button>
+                            <button type="button" class="btn-outline-dark" onclick="authLogout()" style="padding:6px 16px;font-size:13px;">Log Out</button>
+                        </div>
                     </div>
-                    <div id="reviewerStatStrip" class="stat-strip"></div>
+                    <div id="reviewerProfileViewMode">
+                        <p id="reviewerBioDisplay" class="profile-bio"></p>
+                        <div id="reviewerStatStrip" class="stat-strip"></div>
+                    </div>
+                    <form id="reviewerProfileEditForm" onsubmit="saveReviewerProfile(event)" style="display:none;margin-top:1.25rem;">
+                        <div class="field-group">
+                            <label>Full Name *</label>
+                            <input type="text" id="reviewerFullName" required>
+                        </div>
+                        <div class="field-group">
+                            <label>Institutional Affiliation</label>
+                            <input type="text" id="reviewerAffiliation">
+                        </div>
+                        <div class="field-group">
+                            <label>Areas of Research Expertise</label>
+                            <input type="text" id="reviewerExpertise" placeholder="e.g. Urban Sociology, Gender & Society">
+                        </div>
+                        <div class="field-group">
+                            <label>Short Bio</label>
+                            <textarea id="reviewerBio" rows="3"></textarea>
+                        </div>
+                        <div class="field-group">
+                            <label>Profile Photo</label>
+                            <div id="reviewerAvatarUploadContainer" style="color:#767676;font-size:13px;padding:0.75rem;border:1px dashed #D8D8D8;border-radius:6px;">Loading upload control…</div>
+                            <input type="hidden" id="reviewerAvatarUrl">
+                        </div>
+                        <div style="display:flex;gap:0.75rem;">
+                            <button type="submit" class="btn-primary">Save Profile</button>
+                            <button type="button" class="btn-outline-dark" onclick="toggleReviewerProfileEdit()">Cancel</button>
+                        </div>
+                    </form>
                 </div>
                 <div id="reviewerAssignmentsList"><div class="loading"><div class="loading-spinner"></div>Loading...</div></div>
             </div>
@@ -860,10 +922,97 @@
                 </div>
             </div>
             <div class="footer-bottom">
-                <span>© 2025 Department of Sociology, Kaduna State University</span>
+                <span>© 2026 Department of Sociology, Kaduna State University</span>
+                <div style="display:flex;gap:1.25rem;">
+                    <a onclick="showPage('privacy')">Privacy Policy</a>
+                    <a onclick="showPage('terms')">Terms of Service</a>
+                </div>
             </div>
         </div>
     </footer>
+
+    <!-- ═══════════ PAGE: PRIVACY POLICY ═══════════ -->
+    <div id="page-privacy" class="page-content">
+        <section class="section-padding section-alt">
+            <div class="container-custom" style="max-width:800px;">
+                <h1 style="font-family:'Playfair Display',serif;font-size:2rem;margin-bottom:0.5rem;">Privacy Policy</h1>
+                <p style="font-size:13px;color:var(--text-muted);margin-bottom:2rem;">Last updated: 2026</p>
+                <div class="dashboard-card">
+                    <h2>What We Collect</h2>
+                    <p style="font-size:14.5px;color:var(--text-secondary);line-height:1.8;">
+                        When you create an author or reviewer account, we collect your email address and a password
+                        (securely managed by our authentication provider, Supabase — we never see or store your
+                        password directly). If you choose to complete your profile, we also store your full name,
+                        institutional affiliation, ORCID iD, a short bio, and a profile photo. When you submit a
+                        manuscript, we collect the manuscript file itself, its title, abstract, keywords, research
+                        area, and your AI tool usage disclosure.
+                    </p>
+                </div>
+                <div class="dashboard-card">
+                    <h2>How We Use It</h2>
+                    <p style="font-size:14.5px;color:var(--text-secondary);line-height:1.8;">
+                        Your information is used solely to operate the journal: managing your account, processing
+                        and reviewing your submissions, communicating status updates by email, and — if you choose to
+                        complete a public profile — displaying your name and published work on your public author
+                        page. During peer review, your identity is deliberately withheld from reviewers to preserve
+                        double-blind review integrity.
+                    </p>
+                </div>
+                <div class="dashboard-card">
+                    <h2>Who Can See What</h2>
+                    <p style="font-size:14.5px;color:var(--text-secondary);line-height:1.8;">
+                        Your email address is never displayed publicly. Your manuscript is visible only to
+                        editorial staff and reviewers assigned to it — reviewers never see your name or email.
+                        If you complete a public profile, your name, affiliation, bio, and published articles become
+                        visible to any visitor on your public author page.
+                    </p>
+                </div>
+                <div class="dashboard-card" style="margin-bottom:0;">
+                    <h2>Your Choices</h2>
+                    <p style="font-size:14.5px;color:var(--text-secondary);line-height:1.8;">
+                        You may update or remove your profile details at any time from your account dashboard.
+                        To request deletion of your account or data entirely, contact
+                        <a href="mailto:kjsss@kasu.edu.ng">kjsss@kasu.edu.ng</a>.
+                    </p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- ═══════════ PAGE: TERMS OF SERVICE ═══════════ -->
+    <div id="page-terms" class="page-content">
+        <section class="section-padding section-alt">
+            <div class="container-custom" style="max-width:800px;">
+                <h1 style="font-family:'Playfair Display',serif;font-size:2rem;margin-bottom:0.5rem;">Terms of Service</h1>
+                <p style="font-size:13px;color:var(--text-muted);margin-bottom:2rem;">Last updated: 2026</p>
+                <div class="dashboard-card">
+                    <h2>Submission Terms</h2>
+                    <p style="font-size:14.5px;color:var(--text-secondary);line-height:1.8;">
+                        By submitting a manuscript to KJSSS, you confirm that the work is original, has not been
+                        published elsewhere, and is not under consideration by another journal. You are responsible
+                        for the accuracy of your submission and for disclosing any use of AI tools in its preparation,
+                        per our Author Guidelines.
+                    </p>
+                </div>
+                <div class="dashboard-card">
+                    <h2>Open Access & Licensing</h2>
+                    <p style="font-size:14.5px;color:var(--text-secondary);line-height:1.8;">
+                        Published articles are made freely available under an open-access model. Authors retain
+                        copyright of their own work; KJSSS is granted a non-exclusive license to publish, distribute,
+                        and archive the article on this platform.
+                    </p>
+                </div>
+                <div class="dashboard-card" style="margin-bottom:0;">
+                    <h2>Account Responsibilities</h2>
+                    <p style="font-size:14.5px;color:var(--text-secondary);line-height:1.8;">
+                        You are responsible for maintaining the confidentiality of your account credentials.
+                        Reviewer accounts carry an obligation of confidentiality — manuscript content and any
+                        materials accessed during review must not be shared or used outside the review process.
+                    </p>
+                </div>
+            </div>
+        </section>
+    </div>
 
     <!-- ═══════════ TOAST ═══════════ -->
     <div id="toast" class="toast"></div>
