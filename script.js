@@ -35,25 +35,45 @@ function showToast(msg, type = 'success') {
 }
 
 // ─── INIT ────────────────────────────────────────────
+let isPasswordRecoveryFlow = false;
+
+// Checks the URL directly for the recovery link's marker, rather than
+// relying only on Supabase's onAuthStateChange event — that event's exact
+// name/timing has proven unreliable in practice (this is the second bug
+// in a row caused by trusting it alone). Must be called before the
+// Supabase client processes and strips the URL hash.
+function checkForPasswordRecoveryInUrl() {
+    const hash = window.location.hash || '';
+    if (hash.includes('type=recovery')) return true;
+    const params = new URLSearchParams(window.location.search);
+    return params.get('type') === 'recovery';
+}
+
+function showPasswordRecoveryForm() {
+    showPage('submit');
+    document.getElementById('authGateContainer').style.display = 'block';
+    document.getElementById('authedSubmitContainer').style.display = 'none';
+    document.getElementById('authLoginForm').style.display = 'none';
+    document.getElementById('authForgotForm').style.display = 'none';
+    document.getElementById('authRegisterForm').style.display = 'none';
+    document.getElementById('authResetPasswordForm').style.display = 'block';
+}
+
 async function init() {
     try {
+        // Check BEFORE creating the Supabase client — client creation is
+        // what triggers Supabase to read and then strip this from the URL.
+        isPasswordRecoveryFlow = checkForPasswordRecoveryInUrl();
+
         await initSupabaseWithRetry();
         console.log('✅ Supabase initialized');
 
-        // Register this BEFORE any other awaited call (like getSession()
-        // below) — Supabase can process a password-recovery link's token
-        // and fire this event almost immediately after the client is
-        // created. Registering the listener late risks missing that
-        // event entirely, which is exactly what was happening before.
         db.auth.onAuthStateChange(async (_event, session) => {
             if (_event === 'PASSWORD_RECOVERY') {
-                showPage('submit');
-                document.getElementById('authGateContainer').style.display = 'block';
-                document.getElementById('authedSubmitContainer').style.display = 'none';
-                document.getElementById('authLoginForm').style.display = 'none';
-                document.getElementById('authForgotForm').style.display = 'none';
-                document.getElementById('authRegisterForm').style.display = 'none';
-                document.getElementById('authResetPasswordForm').style.display = 'block';
+                isPasswordRecoveryFlow = true;
+            }
+            if (isPasswordRecoveryFlow) {
+                showPasswordRecoveryForm();
                 return;
             }
             currentUser = session ? session.user : null;
@@ -65,10 +85,14 @@ async function init() {
         fetchSiteSettings();
         initFileUploads();
 
-        // Track auth state for the Submit page's login gate
-        const { data: sessionData } = await db.auth.getSession();
-        currentUser = sessionData.session ? sessionData.session.user : null;
-        await refreshCurrentUserRole();
+        if (isPasswordRecoveryFlow) {
+            showPasswordRecoveryForm();
+        } else {
+            // Track auth state for the Submit page's login gate
+            const { data: sessionData } = await db.auth.getSession();
+            currentUser = sessionData.session ? sessionData.session.user : null;
+            await refreshCurrentUserRole();
+        }
 
         console.log('✅ Site ready!');
     } catch (e) {
@@ -230,9 +254,19 @@ async function submitNewPassword(e) {
         const newPassword = document.getElementById('newPasswordInput').value;
         const { error } = await db.auth.updateUser({ password: newPassword });
         if (error) throw error;
+
+        // Clear the recovery flag and strip the recovery marker out of the
+        // URL — otherwise refreshing the page would re-trigger the reset
+        // form forever, since the hash would still say type=recovery.
+        isPasswordRecoveryFlow = false;
+        window.history.replaceState({}, '', window.location.pathname + window.location.search);
+
         showToast('Password updated — you are now logged in.', 'success');
         document.getElementById('authResetPasswordForm').style.display = 'none';
         document.getElementById('authGateContainer').style.display = 'none';
+        const { data: sessionData } = await db.auth.getSession();
+        currentUser = sessionData.session ? sessionData.session.user : null;
+        await refreshCurrentUserRole();
         renderSubmitPageAuthState();
     } catch (err) {
         errEl.textContent = err.message || 'Could not update password.';
