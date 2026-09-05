@@ -28,22 +28,48 @@ async function verifyAdminAccess(session) {
     }
 }
 
+let isAdminPasswordRecoveryFlow = false;
+
+// Checks the URL directly for the recovery link's marker, rather than
+// relying only on Supabase's onAuthStateChange event — that event alone
+// proved unreliable on the author/reviewer side, so the same defensive
+// check is applied here too.
+function checkForAdminPasswordRecoveryInUrl() {
+    const hash = window.location.hash || '';
+    if (hash.includes('type=recovery')) return true;
+    const params = new URLSearchParams(window.location.search);
+    return params.get('type') === 'recovery';
+}
+
+function showAdminPasswordRecoveryForm() {
+    showAdminLoginView();
+    document.getElementById('adminLoginForm').style.display = 'none';
+    document.getElementById('adminForgotForm').style.display = 'none';
+    document.getElementById('adminResetPasswordForm').style.display = 'block';
+}
+
 async function init() {
     try {
+        // Check BEFORE creating the Supabase client — client creation is
+        // what triggers Supabase to read and then strip this from the URL.
+        isAdminPasswordRecoveryFlow = checkForAdminPasswordRecoveryInUrl();
+
         await initSupabaseWithRetry();
         initFileUploads();
 
-        // Supabase fires this specific event when someone lands here via a
-        // password-reset email link — show the "set new password" form
-        // instead of running the normal admin-role check.
         db.auth.onAuthStateChange((event) => {
             if (event === 'PASSWORD_RECOVERY') {
-                showAdminLoginView();
-                document.getElementById('adminLoginForm').style.display = 'none';
-                document.getElementById('adminForgotForm').style.display = 'none';
-                document.getElementById('adminResetPasswordForm').style.display = 'block';
+                isAdminPasswordRecoveryFlow = true;
+            }
+            if (isAdminPasswordRecoveryFlow) {
+                showAdminPasswordRecoveryForm();
             }
         });
+
+        if (isAdminPasswordRecoveryFlow) {
+            showAdminPasswordRecoveryForm();
+            return;
+        }
 
         const { data } = await db.auth.getSession();
         if (data.session) {
@@ -214,6 +240,13 @@ async function submitAdminNewPassword(e) {
         const newPassword = document.getElementById('adminNewPasswordInput').value;
         const { error } = await db.auth.updateUser({ password: newPassword });
         if (error) throw error;
+
+        // Clear the recovery flag and strip the recovery marker out of the
+        // URL first — otherwise the init() call below would immediately
+        // see type=recovery again and loop straight back into this form.
+        isAdminPasswordRecoveryFlow = false;
+        window.history.replaceState({}, '', window.location.pathname + window.location.search);
+
         showToast('Password updated!', 'success');
         document.getElementById('adminResetPasswordForm').style.display = 'none';
         // Re-run init so the role check + dashboard load happen cleanly
