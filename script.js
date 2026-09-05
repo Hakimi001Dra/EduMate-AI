@@ -40,19 +40,12 @@ async function init() {
         await initSupabaseWithRetry();
         console.log('✅ Supabase initialized');
 
-        refreshAllData();
-        fetchSiteSettings();
-        initFileUploads();
-
-        // Track auth state for the Submit page's login gate
-        const { data: sessionData } = await db.auth.getSession();
-        currentUser = sessionData.session ? sessionData.session.user : null;
-        await refreshCurrentUserRole();
-
+        // Register this BEFORE any other awaited call (like getSession()
+        // below) — Supabase can process a password-recovery link's token
+        // and fire this event almost immediately after the client is
+        // created. Registering the listener late risks missing that
+        // event entirely, which is exactly what was happening before.
         db.auth.onAuthStateChange(async (_event, session) => {
-            // Supabase fires this specific event when someone lands here via
-            // a password-reset email link. Show the "set new password" form
-            // instead of the normal logged-in view.
             if (_event === 'PASSWORD_RECOVERY') {
                 showPage('submit');
                 document.getElementById('authGateContainer').style.display = 'block';
@@ -67,6 +60,15 @@ async function init() {
             await refreshCurrentUserRole();
             renderSubmitPageAuthState();
         });
+
+        refreshAllData();
+        fetchSiteSettings();
+        initFileUploads();
+
+        // Track auth state for the Submit page's login gate
+        const { data: sessionData } = await db.auth.getSession();
+        currentUser = sessionData.session ? sessionData.session.user : null;
+        await refreshCurrentUserRole();
 
         console.log('✅ Site ready!');
     } catch (e) {
